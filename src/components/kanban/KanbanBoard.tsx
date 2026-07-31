@@ -40,6 +40,14 @@ export default function KanbanBoard({
   const [mostrarForm, setMostrarForm] = useState(false);
   const [detalleAbiertoId, setDetalleAbiertoId] = useState<string | null>(null);
   const [mostrarArchivadas, setMostrarArchivadas] = useState(false);
+  const [busqueda, setBusqueda] = useState("");
+
+  const terminoBusqueda = busqueda.trim().toLowerCase();
+  const hayBusqueda = terminoBusqueda.length > 0;
+
+  function coincide(detalle: OrdenConDetalle): boolean {
+    return detalle.vehiculo.placa.toLowerCase().includes(terminoBusqueda);
+  }
 
   async function actualizarEstado(ordenId: string, nuevoEstado: EstadoKanban) {
     setMoviendoId(ordenId);
@@ -78,8 +86,27 @@ export default function KanbanBoard({
 
   return (
     <div>
-      {puedeCrearOrden && (
-        <div className="mb-4 flex justify-end">
+      <div className="mb-4 flex flex-wrap items-center justify-end gap-2">
+        <div className="relative min-w-0 flex-1 sm:flex-none sm:w-56">
+          <input
+            type="text"
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+            placeholder="Buscar por placa..."
+            className="w-full rounded-lg border border-ink/15 bg-paper px-3 py-2 pr-7 font-mono text-sm placeholder:font-sans placeholder:text-ink/40 focus:border-safety focus:outline-none"
+          />
+          {hayBusqueda && (
+            <button
+              type="button"
+              onClick={() => setBusqueda("")}
+              aria-label="Limpiar búsqueda"
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-ink/40 hover:text-ink"
+            >
+              ×
+            </button>
+          )}
+        </div>
+        {puedeCrearOrden && (
           <button
             type="button"
             onClick={() => setMostrarForm(true)}
@@ -87,8 +114,8 @@ export default function KanbanBoard({
           >
             + Nueva Orden
           </button>
-        </div>
-      )}
+        )}
+      </div>
 
       {mostrarForm && (
         <NuevaOrdenForm
@@ -125,9 +152,12 @@ export default function KanbanBoard({
           const columnaCompleta = ordenes.filter((d) => d.orden.estadoKanban === estado);
           const esEntregado = estado === "Entregado";
           const archivadas = esEntregado ? columnaCompleta.filter(estaArchivada) : [];
+          // While searching, matching archived cards surface even if the
+          // "mostrar archivadas" toggle is off — no need to reveal the whole
+          // pile of old deliveries just to find one plate.
           const columna =
             esEntregado && !mostrarArchivadas
-              ? columnaCompleta.filter((d) => !estaArchivada(d))
+              ? columnaCompleta.filter((d) => !estaArchivada(d) || (hayBusqueda && coincide(d)))
               : columnaCompleta;
 
           return (
@@ -165,6 +195,8 @@ export default function KanbanBoard({
                     onMover={(direccion) => mover(detalle.orden.id, direccion)}
                     onVerDetalle={() => setDetalleAbiertoId(detalle.orden.id)}
                     archivada={estaArchivada(detalle)}
+                    resaltada={hayBusqueda && coincide(detalle)}
+                    atenuada={hayBusqueda && !coincide(detalle)}
                     onVolverAIngresado={
                       estaArchivada(detalle)
                         ? () => actualizarEstado(detalle.orden.id, "Ingresado")

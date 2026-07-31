@@ -14,6 +14,8 @@ export default function OrdenCard({
   moviendo,
   archivada = false,
   onVolverAIngresado,
+  resaltada = false,
+  atenuada = false,
 }: {
   detalle: OrdenConDetalle;
   onMover: (direccion: 1 | -1) => void;
@@ -28,6 +30,11 @@ export default function OrdenCard({
    *  (e.g. the client came back for a warranty claim) instead of stepping
    *  back through all 7 intermediate stages one at a time. */
   onVolverAIngresado?: () => void;
+  /** True when this card's plate matches an active board search. */
+  resaltada?: boolean;
+  /** True when a board search is active and this card does NOT match —
+   *  dimmed so the matching card(s) stand out. */
+  atenuada?: boolean;
 }) {
   const { rol } = useRole();
   const puedeVerPrecios = rol !== "Mechanic";
@@ -36,9 +43,11 @@ export default function OrdenCard({
 
   return (
     <div
-      className={`animate-rise-in rounded-lg border border-ink/10 border-l-4 bg-paper p-3 shadow-sm transition-opacity ${
+      className={`animate-rise-in rounded-lg border border-ink/10 border-l-4 bg-paper p-3 shadow-sm transition-all ${
         STAGE_BORDER[orden.estadoKanban]
-      } ${moviendo ? "opacity-40" : "opacity-100"}`}
+      } ${moviendo ? "opacity-40" : atenuada ? "opacity-30" : "opacity-100"} ${
+        resaltada ? "ring-2 ring-safety" : ""
+      }`}
     >
       <div className="flex items-start justify-between gap-2">
         <button
