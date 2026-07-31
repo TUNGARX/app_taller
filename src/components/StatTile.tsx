@@ -15,7 +15,7 @@ export default function StatTile({
         : "text-ink";
 
   return (
-    <div className="rounded-lg border border-black/10 bg-paper px-5 py-4 animate-rise-in">
+    <div className="rounded-lg border border-ink/10 bg-paper px-5 py-4 animate-rise-in">
       <p className="font-mono text-[11px] uppercase tracking-[0.15em] text-ink/50">
         {label}
       </p>

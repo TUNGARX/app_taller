@@ -110,18 +110,18 @@ export default function NuevaOrdenForm({
   }
 
   const inputClass =
-    "w-full rounded-lg border border-black/15 bg-paper px-3 py-2 text-sm text-ink placeholder:text-ink/50 focus:border-safety focus:outline-none";
+    "w-full rounded-lg border border-ink/15 bg-paper px-3 py-2 text-sm text-ink placeholder:text-ink/50 focus:border-safety focus:outline-none";
   const labelClass = "text-xs font-medium uppercase tracking-wide text-ink/50";
 
   return (
     <div className="fixed inset-0 z-30 flex items-start justify-center overflow-y-auto bg-black/40 px-3 py-6 sm:px-4 sm:py-10">
-      <div className="animate-rise-in w-full max-w-lg rounded-xl border border-black/10 bg-paper p-4 shadow-lg sm:p-6">
+      <div className="animate-rise-in w-full max-w-lg rounded-xl border border-ink/10 bg-paper p-4 shadow-lg sm:p-6">
         <div className="flex items-center justify-between">
           <h2 className="font-display text-2xl tracking-wide text-ink">Nueva Orden</h2>
           <button
             type="button"
             onClick={onCerrar}
-            className="rounded-full px-2 py-1 text-ink/40 hover:bg-black/5 hover:text-ink"
+            className="rounded-full px-2 py-1 text-ink/40 hover:bg-ink/5 hover:text-ink"
           >
             ✕
           </button>

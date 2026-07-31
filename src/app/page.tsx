@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { citas, ordenesTrabajo } from "@/lib/mock-db";
 import IngresoPanel from "@/components/IngresoPanel";
+import ThemeToggle from "@/components/ThemeToggle";
 
 export default function Home() {
   const hoy = new Date().toISOString().slice(0, 10);
@@ -10,8 +11,9 @@ export default function Home() {
   const listas = ordenesTrabajo.filter((o) => o.estadoKanban === "Entregado").length;
 
   return (
-    <div className="flex flex-1 flex-col bg-steel text-white">
+    <div className="relative flex flex-1 flex-col bg-steel text-white">
       <div className="hazard-strip h-1.5 w-full" />
+      <ThemeToggle className="absolute right-4 top-5 sm:right-6" />
 
       <div className="mx-auto flex w-full max-w-4xl flex-1 flex-col items-center justify-center px-6 py-20 text-center">
         <p className="animate-rise-in font-mono text-xs uppercase tracking-[0.35em] text-white/40">

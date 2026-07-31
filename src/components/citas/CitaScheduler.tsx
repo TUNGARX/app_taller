@@ -127,14 +127,14 @@ export default function CitaScheduler({
   }
 
   const inputClass =
-    "w-full rounded-lg border border-black/15 bg-paper px-3 py-2 text-sm text-ink placeholder:text-ink/50 focus:border-safety focus:outline-none";
+    "w-full rounded-lg border border-ink/15 bg-paper px-3 py-2 text-sm text-ink placeholder:text-ink/50 focus:border-safety focus:outline-none";
   const labelClass = "text-xs font-medium uppercase tracking-wide text-ink/50";
 
   return (
     <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1fr_1.1fr]">
       <form
         onSubmit={enviar}
-        className="rounded-xl border border-black/10 bg-paper p-4 shadow-sm sm:p-6"
+        className="rounded-xl border border-ink/10 bg-paper p-4 shadow-sm sm:p-6"
       >
         <div className="flex gap-1 rounded-lg bg-bg p-1">
           <button
@@ -305,7 +305,7 @@ export default function CitaScheduler({
           {citas.map(({ cita, cliente, vehiculo }) => (
             <li
               key={cita.id}
-              className="animate-rise-in rounded-lg border border-black/10 bg-paper px-4 py-3"
+              className="animate-rise-in rounded-lg border border-ink/10 bg-paper px-4 py-3"
             >
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <span className="font-mono text-sm font-semibold text-ink">
@@ -327,7 +327,7 @@ export default function CitaScheduler({
                       type="button"
                       disabled={actualizandoId === cita.id}
                       onClick={() => cambiarEstadoCita(cita.id, "Confirmada")}
-                      className="rounded-md border border-black/15 px-2.5 py-1 text-xs font-medium text-ink/70 transition-colors hover:bg-black/5 disabled:opacity-50"
+                      className="rounded-md border border-ink/15 px-2.5 py-1 text-xs font-medium text-ink/70 transition-colors hover:bg-ink/5 disabled:opacity-50"
                     >
                       Confirmar
                     </button>
@@ -346,7 +346,7 @@ export default function CitaScheduler({
                     type="button"
                     disabled={actualizandoId === cita.id}
                     onClick={() => cambiarEstadoCita(cita.id, "Cancelada")}
-                    className="rounded-md border border-black/15 px-2.5 py-1 text-xs font-medium text-stage-repuestos transition-colors hover:bg-stage-repuestos/10 disabled:opacity-50"
+                    className="rounded-md border border-ink/15 px-2.5 py-1 text-xs font-medium text-stage-repuestos transition-colors hover:bg-stage-repuestos/10 disabled:opacity-50"
                   >
                     Cancelar
                   </button>

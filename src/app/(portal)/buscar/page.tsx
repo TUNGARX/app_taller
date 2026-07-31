@@ -62,7 +62,7 @@ export default function BuscarPage() {
             value={placa}
             onChange={(e) => setPlaca(e.target.value)}
             placeholder="Placa (ej. BPP123)"
-            className="flex-1 rounded-lg border border-black/15 bg-paper px-4 py-3 text-center font-mono text-lg uppercase tracking-widest text-ink placeholder:text-ink/50 focus:border-safety focus:outline-none"
+            className="flex-1 rounded-lg border border-ink/15 bg-paper px-4 py-3 text-center font-mono text-lg uppercase tracking-widest text-ink placeholder:text-ink/50 focus:border-safety focus:outline-none"
           />
           <button
             type="submit"
@@ -81,9 +81,9 @@ export default function BuscarPage() {
 
         {resultado && (
           <div className="mt-8 animate-rise-in">
-            <div className="rounded-xl border border-black/10 bg-paper p-4 shadow-sm sm:p-6">
+            <div className="rounded-xl border border-ink/10 bg-paper p-4 shadow-sm sm:p-6">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <span className="rounded border border-ink/20 bg-ink px-3 py-1 font-mono text-base font-semibold tracking-wider text-white">
+                <span className="rounded border border-steel-light bg-steel px-3 py-1 font-mono text-base font-semibold tracking-wider text-white">
                   {resultado.vehiculo.placa}
                 </span>
                 {ordenActual && (
@@ -138,7 +138,7 @@ export default function BuscarPage() {
               )}
 
               {ordenActual && ordenActual.orden.fotos.length > 0 && (
-                <div className="mt-4 border-t border-black/10 pt-4">
+                <div className="mt-4 border-t border-ink/10 pt-4">
                   <p className="text-xs font-medium uppercase tracking-wide text-ink/50">
                     Fotos de Evidencia
                   </p>
@@ -149,7 +149,7 @@ export default function BuscarPage() {
                         key={i}
                         src={foto}
                         alt={`Evidencia ${i + 1}`}
-                        className="h-20 w-20 rounded-md border border-black/10 object-cover"
+                        className="h-20 w-20 rounded-md border border-ink/10 object-cover"
                       />
                     ))}
                   </div>
@@ -166,7 +166,7 @@ export default function BuscarPage() {
                   {resultado.ordenes.slice(1).map(({ orden, cotizacion }) => (
                     <li
                       key={orden.id}
-                      className="rounded-md border border-black/10 bg-paper px-4 py-3 text-sm"
+                      className="rounded-md border border-ink/10 bg-paper px-4 py-3 text-sm"
                     >
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <div>
@@ -201,7 +201,7 @@ export default function BuscarPage() {
                               key={i}
                               src={foto}
                               alt={`Evidencia ${i + 1}`}
-                              className="h-16 w-16 rounded-md border border-black/10 object-cover"
+                              className="h-16 w-16 rounded-md border border-ink/10 object-cover"
                             />
                           ))}
                         </div>

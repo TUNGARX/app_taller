@@ -27,7 +27,7 @@ export default function OrdenCard({
 
   return (
     <div
-      className={`animate-rise-in rounded-lg border border-black/10 border-l-4 bg-paper p-3 shadow-sm transition-opacity ${
+      className={`animate-rise-in rounded-lg border border-ink/10 border-l-4 bg-paper p-3 shadow-sm transition-opacity ${
         STAGE_BORDER[orden.estadoKanban]
       } ${moviendo ? "opacity-40" : "opacity-100"}`}
     >
@@ -35,7 +35,7 @@ export default function OrdenCard({
         <button
           type="button"
           onClick={onVerDetalle}
-          className="rounded border border-ink/20 bg-ink px-2 py-0.5 font-mono text-xs font-semibold tracking-wider text-white transition-colors hover:bg-safety"
+          className="rounded border border-steel-light bg-steel px-2 py-0.5 font-mono text-xs font-semibold tracking-wider text-white transition-colors hover:bg-safety"
         >
           {vehiculo.placa}
         </button>
@@ -94,7 +94,7 @@ export default function OrdenCard({
           type="button"
           onClick={() => onMover(-1)}
           disabled={!puedeRetroceder || moviendo}
-          className="rounded px-2 py-1 text-xs font-medium text-ink/60 transition-colors hover:bg-black/5 disabled:opacity-20"
+          className="rounded px-2 py-1 text-xs font-medium text-ink/60 transition-colors hover:bg-ink/5 disabled:opacity-20"
         >
           ‹ Anterior
         </button>

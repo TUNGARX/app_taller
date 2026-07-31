@@ -117,7 +117,7 @@ export default function KanbanBoard({
               </div>
               <div className="flex flex-col gap-3">
                 {columna.length === 0 && (
-                  <p className="rounded-md border border-dashed border-black/15 px-3 py-6 text-center text-xs text-ink/30">
+                  <p className="rounded-md border border-dashed border-ink/15 px-3 py-6 text-center text-xs text-ink/30">
                     Sin órdenes
                   </p>
                 )}

@@ -1,11 +1,18 @@
 @import "tailwindcss";
 
+/* Manual light/dark toggle (a `.dark` class on <html>, set by ThemeToggle /
+   the FOUC-prevention script in layout.tsx) rather than only following the
+   OS preference — lets dark: utilities respond to the user's explicit choice. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
-  /* This app is light-only by design. Without this, Chrome is free to apply
-     its own dark-mode rendering to native form controls (background/text
-     color) based on the OS theme — and it can apply it inconsistently
-     between an input's resting and focused/active state, which is what was
-     making input text/placeholders disappear specifically while focused. */
+  /* Chrome is free to apply its own dark-mode rendering to native form
+     controls (background/text color) based on the OS theme — and it can
+     apply it inconsistently between an input's resting and focused/active
+     state, which is what was making input text/placeholders disappear
+     specifically while focused in the past. Keeping this explicit and in
+     sync with the active theme (see the `.dark` block below) avoids that
+     regressing now that the app is no longer light-only. */
   color-scheme: light;
 
   /* Base surfaces */
@@ -13,7 +20,8 @@
   --color-ink: #1c1a17;
   --color-paper: #ffffff;
 
-  /* Brand: industrial workshop palette */
+  /* Brand: industrial workshop palette — unchanged between themes, these
+     are already dark/vivid accent colors that read fine on either. */
   --color-steel: #232227;
   --color-steel-light: #34333a;
   --color-safety: #ff5a1f;
@@ -29,6 +37,15 @@
   --color-stage-terminado: #0d9488;
   --color-stage-pruebas: #6366f1;
   --color-stage-entregado: #16a34a;
+}
+
+.dark {
+  color-scheme: dark;
+
+  /* Base surfaces flip; brand/stage colors above intentionally don't. */
+  --color-bg: #17161a;
+  --color-ink: #eae7e2;
+  --color-paper: #232227;
 }
 
 @theme inline {
@@ -59,10 +76,13 @@ body {
   color: var(--color-ink);
 }
 
+/* Match native form-control chrome (scrollbars, date/time pickers, etc.) to
+   whichever theme is active — inherits :root's or .dark's color-scheme
+   rather than hardcoding light, now that both themes exist. */
 input,
 textarea,
 select {
-  color-scheme: light;
+  color-scheme: inherit;
 }
 
 /* Chrome injects its own text/background color into autofilled fields via an

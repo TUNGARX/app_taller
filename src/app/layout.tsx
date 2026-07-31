@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Bebas_Neue, IBM_Plex_Mono, IBM_Plex_Sans } from "next/font/google";
 import { RoleProvider } from "@/lib/role-context";
+import { THEME_INIT_SCRIPT } from "@/lib/theme-script";
 import "./globals.css";
 
 // Bebas Neue: bold condensed signage font, used for headings and the wordmark.
@@ -38,7 +39,13 @@ export default function RootLayout({
     <html
       lang="es"
       className={`${display.variable} ${body.variable} ${mono.variable} h-full`}
+      suppressHydrationWarning
     >
+      <head>
+        {/* Sets the .dark class before paint so there's no flash of the
+            wrong theme — must run synchronously, before body renders. */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+      </head>
       <body className="min-h-full flex flex-col bg-(--color-bg) text-(--color-ink) font-(family-name:--font-body)">
         <RoleProvider>{children}</RoleProvider>
       </body>

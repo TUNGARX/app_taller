@@ -112,14 +112,14 @@ export default function StaffPage() {
         Cree cuentas para nuevos empleados y reinicie contraseñas cuando sea necesario.
       </p>
 
-      <form onSubmit={crear} className="mt-8 grid grid-cols-1 gap-3 rounded-lg border border-black/10 bg-paper p-5 sm:grid-cols-2">
+      <form onSubmit={crear} className="mt-8 grid grid-cols-1 gap-3 rounded-lg border border-ink/10 bg-paper p-5 sm:grid-cols-2">
         <input
           type="text"
           value={usuario}
           onChange={(e) => setUsuario(e.target.value)}
           placeholder="Usuario (ej. carlos.mora)"
           required
-          className="rounded-lg border border-black/15 bg-white px-4 py-2.5 text-sm placeholder:text-ink/50 focus:border-safety focus:outline-none"
+          className="rounded-lg border border-ink/15 bg-paper px-4 py-2.5 text-sm placeholder:text-ink/50 focus:border-safety focus:outline-none"
         />
         <input
           type="text"
@@ -127,7 +127,7 @@ export default function StaffPage() {
           onChange={(e) => setNombre(e.target.value)}
           placeholder="Nombre completo"
           required
-          className="rounded-lg border border-black/15 bg-white px-4 py-2.5 text-sm placeholder:text-ink/50 focus:border-safety focus:outline-none"
+          className="rounded-lg border border-ink/15 bg-paper px-4 py-2.5 text-sm placeholder:text-ink/50 focus:border-safety focus:outline-none"
         />
         <input
           type="text"
@@ -135,12 +135,12 @@ export default function StaffPage() {
           onChange={(e) => setPassword(e.target.value)}
           placeholder="Contraseña temporal (mínimo 8 caracteres)"
           required
-          className="rounded-lg border border-black/15 bg-white px-4 py-2.5 text-sm placeholder:text-ink/50 focus:border-safety focus:outline-none"
+          className="rounded-lg border border-ink/15 bg-paper px-4 py-2.5 text-sm placeholder:text-ink/50 focus:border-safety focus:outline-none"
         />
         <select
           value={nuevoRol}
           onChange={(e) => setNuevoRol(e.target.value as Rol)}
-          className="rounded-lg border border-black/15 bg-white px-4 py-2.5 text-sm focus:border-safety focus:outline-none"
+          className="rounded-lg border border-ink/15 bg-paper px-4 py-2.5 text-sm focus:border-safety focus:outline-none"
         >
           {ROLES.map((r) => (
             <option key={r} value={r}>
@@ -171,7 +171,7 @@ export default function StaffPage() {
             {usuarios.map((u) => (
               <li
                 key={u.id}
-                className="flex flex-col gap-2 rounded-lg border border-black/10 bg-paper p-4 sm:flex-row sm:items-center sm:justify-between"
+                className="flex flex-col gap-2 rounded-lg border border-ink/10 bg-paper p-4 sm:flex-row sm:items-center sm:justify-between"
               >
                 <div>
                   <p className="text-sm font-semibold text-ink">
@@ -190,7 +190,7 @@ export default function StaffPage() {
                       value={passwordTemporal}
                       onChange={(e) => setPasswordTemporal(e.target.value)}
                       placeholder="Nueva contraseña temporal"
-                      className="min-w-0 flex-1 rounded-lg border border-black/15 bg-white px-3 py-1.5 text-xs focus:border-safety focus:outline-none"
+                      className="min-w-0 flex-1 rounded-lg border border-ink/15 bg-paper px-3 py-1.5 text-xs focus:border-safety focus:outline-none"
                     />
                     <button
                       type="button"
@@ -215,7 +215,7 @@ export default function StaffPage() {
                   <button
                     type="button"
                     onClick={() => setReiniciarId(u.id)}
-                    className="rounded-md border border-black/15 px-3 py-1.5 text-xs font-medium text-ink/60 hover:border-safety hover:text-ink"
+                    className="rounded-md border border-ink/15 px-3 py-1.5 text-xs font-medium text-ink/60 hover:border-safety hover:text-ink"
                   >
                     Reiniciar contraseña
                   </button>

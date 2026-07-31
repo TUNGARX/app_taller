@@ -233,15 +233,15 @@ export default function OrdenDetalleModal({
   }
 
   const inputClass =
-    "w-full rounded-md border border-black/15 bg-paper px-2 py-1.5 text-sm text-ink placeholder:text-ink/50 focus:border-safety focus:outline-none";
+    "w-full rounded-md border border-ink/15 bg-paper px-2 py-1.5 text-sm text-ink placeholder:text-ink/50 focus:border-safety focus:outline-none";
 
   return (
     <div className="fixed inset-0 z-30 flex items-start justify-center overflow-y-auto bg-black/40 px-3 py-6 sm:px-4 sm:py-10">
-      <div className="animate-rise-in w-full max-w-xl rounded-xl border border-black/10 bg-paper p-4 shadow-lg sm:p-6">
+      <div className="animate-rise-in w-full max-w-xl rounded-xl border border-ink/10 bg-paper p-4 shadow-lg sm:p-6">
         <div className="flex items-start justify-between">
           <div>
             <div className="flex items-center gap-2">
-              <span className="rounded border border-ink/20 bg-ink px-2 py-0.5 font-mono text-sm font-semibold tracking-wider text-white">
+              <span className="rounded border border-steel-light bg-steel px-2 py-0.5 font-mono text-sm font-semibold tracking-wider text-white">
                 {vehiculo.placa}
               </span>
               {orden.tipoOrden === "Garantía" && (
@@ -260,7 +260,7 @@ export default function OrdenDetalleModal({
           <button
             type="button"
             onClick={onCerrar}
-            className="rounded-full px-2 py-1 text-ink/40 hover:bg-black/5 hover:text-ink"
+            className="rounded-full px-2 py-1 text-ink/40 hover:bg-ink/5 hover:text-ink"
           >
             ✕
           </button>
@@ -284,7 +284,7 @@ export default function OrdenDetalleModal({
         )}
 
         {/* --- Cotización / Orden / Factura --- */}
-        <div className="mt-6 border-t border-black/10 pt-5">
+        <div className="mt-6 border-t border-ink/10 pt-5">
           <h3 className="font-display text-lg tracking-wide text-ink/80">
             {cotizacion ? (esFactura ? "Factura" : "Orden") : "Cotización"}
           </h3>
@@ -310,7 +310,7 @@ export default function OrdenDetalleModal({
 
                   {puedeVerPrecios && (
                     <>
-                      <div className="mt-2 space-y-1 border-t border-black/10 pt-2 text-xs text-ink/60">
+                      <div className="mt-2 space-y-1 border-t border-ink/10 pt-2 text-xs text-ink/60">
                         <div className="flex justify-between">
                           <span>Total mano de obra</span>
                           <span className="font-mono">{formatColones(t.totalManoDeObra)}</span>
@@ -356,7 +356,7 @@ export default function OrdenDetalleModal({
                           type="button"
                           onClick={() => setMostrarRechazo(true)}
                           disabled={enviandoDecision}
-                          className="rounded-md border border-black/15 px-3 py-1.5 text-xs font-medium text-ink/70 transition-colors hover:bg-black/5 disabled:opacity-50"
+                          className="rounded-md border border-ink/15 px-3 py-1.5 text-xs font-medium text-ink/70 transition-colors hover:bg-ink/5 disabled:opacity-50"
                         >
                           Rechazar
                         </button>
@@ -387,7 +387,7 @@ export default function OrdenDetalleModal({
                         type="button"
                         onClick={() => decidirCotizacion("Pendiente")}
                         disabled={enviandoDecision}
-                        className="rounded-md border border-black/15 px-3 py-1.5 text-xs font-medium text-ink/70 transition-colors hover:bg-black/5 disabled:opacity-50"
+                        className="rounded-md border border-ink/15 px-3 py-1.5 text-xs font-medium text-ink/70 transition-colors hover:bg-ink/5 disabled:opacity-50"
                       >
                         Reconsiderar
                       </button>
@@ -408,7 +408,7 @@ export default function OrdenDetalleModal({
                         <button
                           type="button"
                           onClick={() => setMostrarRechazo(false)}
-                          className="rounded-md px-3 py-1.5 text-xs font-medium text-ink/60 hover:bg-black/5"
+                          className="rounded-md px-3 py-1.5 text-xs font-medium text-ink/60 hover:bg-ink/5"
                         >
                           Cancelar
                         </button>
@@ -431,7 +431,7 @@ export default function OrdenDetalleModal({
                   )}
 
                   {esFactura && (
-                    <div className="mt-3 border-t border-black/10 pt-3">
+                    <div className="mt-3 border-t border-ink/10 pt-3">
                       <DescargarCotizacionPdfButton
                         cotizacion={cotizacion}
                         orden={orden}
@@ -448,7 +448,7 @@ export default function OrdenDetalleModal({
               {items.map((item, i) => (
                 <div
                   key={i}
-                  className="grid grid-cols-2 gap-2 border-b border-black/10 pb-3 sm:grid-cols-[1fr_7rem_4rem_6rem_1.5rem] sm:items-center sm:border-0 sm:pb-0"
+                  className="grid grid-cols-2 gap-2 border-b border-ink/10 pb-3 sm:grid-cols-[1fr_7rem_4rem_6rem_1.5rem] sm:items-center sm:border-0 sm:pb-0"
                 >
                   <input
                     required
@@ -502,7 +502,7 @@ export default function OrdenDetalleModal({
                 + Agregar línea
               </button>
 
-              <div className="space-y-1 border-t border-black/10 pt-2 text-xs text-ink/60">
+              <div className="space-y-1 border-t border-ink/10 pt-2 text-xs text-ink/60">
                 <div className="flex justify-between">
                   <span>Total Neto</span>
                   <span className="font-mono">{formatColones(totales.subtotalNeto)}</span>
@@ -529,7 +529,7 @@ export default function OrdenDetalleModal({
         </div>
 
         {/* --- Fotos --- */}
-        <div className="mt-6 border-t border-black/10 pt-5">
+        <div className="mt-6 border-t border-ink/10 pt-5">
           <h3 className="font-display text-lg tracking-wide text-ink/80">Fotos de Evidencia</h3>
           <div className="mt-3 flex flex-wrap gap-2">
             {orden.fotos.length === 0 && (
@@ -541,13 +541,13 @@ export default function OrdenDetalleModal({
                 key={i}
                 src={foto}
                 alt={`Evidencia ${i + 1}`}
-                className="h-20 w-20 rounded-md border border-black/10 object-cover"
+                className="h-20 w-20 rounded-md border border-ink/10 object-cover"
               />
             ))}
           </div>
 
           {puedeFotografiar && (
-            <label className="mt-3 inline-block cursor-pointer rounded-md border border-dashed border-black/20 px-4 py-2 text-xs font-medium text-ink/60 hover:border-safety hover:text-ink">
+            <label className="mt-3 inline-block cursor-pointer rounded-md border border-dashed border-ink/20 px-4 py-2 text-xs font-medium text-ink/60 hover:border-safety hover:text-ink">
               {subiendoFoto ? "Subiendo..." : "+ Agregar Foto"}
               <input
                 type="file"
@@ -561,7 +561,7 @@ export default function OrdenDetalleModal({
         </div>
 
         {/* --- Historial de Actividad: quién hizo qué, y cuándo (visible a todos los roles) --- */}
-        <div className="mt-6 border-t border-black/10 pt-5">
+        <div className="mt-6 border-t border-ink/10 pt-5">
           <h3 className="font-display text-lg tracking-wide text-ink/80">Historial de Actividad</h3>
           {actividad.length === 0 ? (
             <p className="mt-2 text-sm text-ink/40">Sin actividad registrada todavía.</p>
@@ -580,7 +580,7 @@ export default function OrdenDetalleModal({
         </div>
 
         {/* --- Notas (visible a todos los roles) --- */}
-        <div className="mt-6 border-t border-black/10 pt-5">
+        <div className="mt-6 border-t border-ink/10 pt-5">
           <h3 className="font-display text-lg tracking-wide text-ink/80">Notas</h3>
           <ul className="mt-3 space-y-2">
             {notas.length === 0 && <p className="text-sm text-ink/40">Sin notas todavía.</p>}
@@ -618,7 +618,7 @@ export default function OrdenDetalleModal({
         </div>
 
         {/* --- Historial del vehículo (visible a todos los roles) --- */}
-        <div className="mt-6 border-t border-black/10 pt-5">
+        <div className="mt-6 border-t border-ink/10 pt-5">
           <h3 className="font-display text-lg tracking-wide text-ink/80">Historial del Vehículo</h3>
           {cargandoHistorial ? (
             <p className="mt-2 text-sm text-ink/40">Cargando...</p>
@@ -627,7 +627,7 @@ export default function OrdenDetalleModal({
           ) : (
             <ul className="mt-3 space-y-2">
               {historial.map(({ orden: o, cotizacion: c }) => (
-                <li key={o.id} className="rounded-md border border-black/10 px-3 py-2 text-sm">
+                <li key={o.id} className="rounded-md border border-ink/10 px-3 py-2 text-sm">
                   <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-0.5">
                     <span className="text-ink/80">{o.diagnostico || "Sin diagnóstico registrado"}</span>
                     <span className="font-mono text-xs text-ink/40">{formatFecha(o.fechaIngreso)}</span>
@@ -644,7 +644,7 @@ export default function OrdenDetalleModal({
 
         {/* --- Reabrir orden (solo si ya fue entregada) --- */}
         {puedeFacturar && orden.estadoKanban === "Entregado" && (
-          <div className="mt-6 border-t border-black/10 pt-5">
+          <div className="mt-6 border-t border-ink/10 pt-5">
             {!mostrarReabrir ? (
               <button
                 type="button"

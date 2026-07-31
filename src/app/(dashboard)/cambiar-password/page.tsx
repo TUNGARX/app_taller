@@ -53,7 +53,7 @@ export default function CambiarPasswordPage() {
           placeholder="Contraseña actual"
           autoComplete="current-password"
           required
-          className="w-full rounded-lg border border-black/15 bg-white px-4 py-2.5 text-sm placeholder:text-ink/50 focus:border-safety focus:outline-none"
+          className="w-full rounded-lg border border-ink/15 bg-paper px-4 py-2.5 text-sm placeholder:text-ink/50 focus:border-safety focus:outline-none"
         />
         <input
           type="password"
@@ -62,7 +62,7 @@ export default function CambiarPasswordPage() {
           placeholder="Nueva contraseña (mínimo 8 caracteres)"
           autoComplete="new-password"
           required
-          className="w-full rounded-lg border border-black/15 bg-white px-4 py-2.5 text-sm placeholder:text-ink/50 focus:border-safety focus:outline-none"
+          className="w-full rounded-lg border border-ink/15 bg-paper px-4 py-2.5 text-sm placeholder:text-ink/50 focus:border-safety focus:outline-none"
         />
         <input
           type="password"
@@ -71,7 +71,7 @@ export default function CambiarPasswordPage() {
           placeholder="Confirmar nueva contraseña"
           autoComplete="new-password"
           required
-          className="w-full rounded-lg border border-black/15 bg-white px-4 py-2.5 text-sm placeholder:text-ink/50 focus:border-safety focus:outline-none"
+          className="w-full rounded-lg border border-ink/15 bg-paper px-4 py-2.5 text-sm placeholder:text-ink/50 focus:border-safety focus:outline-none"
         />
         {error && <p className="text-xs text-safety">{error}</p>}
         <button
