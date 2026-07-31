@@ -1,0 +1,106 @@
+@import "tailwindcss";
+
+:root {
+  /* This app is light-only by design. Without this, Chrome is free to apply
+     its own dark-mode rendering to native form controls (background/text
+     color) based on the OS theme — and it can apply it inconsistently
+     between an input's resting and focused/active state, which is what was
+     making input text/placeholders disappear specifically while focused. */
+  color-scheme: light;
+
+  /* Base surfaces */
+  --color-bg: #f4f2ee;
+  --color-ink: #1c1a17;
+  --color-paper: #ffffff;
+
+  /* Brand: industrial workshop palette */
+  --color-steel: #232227;
+  --color-steel-light: #34333a;
+  --color-safety: #ff5a1f;
+  --color-safety-dark: #d4460f;
+  --color-amber: #f5a623;
+
+  /* Kanban stage signal colors — one per stage of the shop's real 8-stage flow */
+  --color-stage-ingresado: #6b7280;
+  --color-stage-revision: #f5a623;
+  --color-stage-cotizacion: #8b5cf6;
+  --color-stage-repuestos: #e11d48;
+  --color-stage-reparacion: #2563eb;
+  --color-stage-terminado: #0d9488;
+  --color-stage-pruebas: #6366f1;
+  --color-stage-entregado: #16a34a;
+}
+
+@theme inline {
+  --color-bg: var(--color-bg);
+  --color-ink: var(--color-ink);
+  --color-paper: var(--color-paper);
+  --color-steel: var(--color-steel);
+  --color-steel-light: var(--color-steel-light);
+  --color-safety: var(--color-safety);
+  --color-safety-dark: var(--color-safety-dark);
+  --color-amber: var(--color-amber);
+  --color-stage-ingresado: var(--color-stage-ingresado);
+  --color-stage-revision: var(--color-stage-revision);
+  --color-stage-cotizacion: var(--color-stage-cotizacion);
+  --color-stage-repuestos: var(--color-stage-repuestos);
+  --color-stage-reparacion: var(--color-stage-reparacion);
+  --color-stage-terminado: var(--color-stage-terminado);
+  --color-stage-pruebas: var(--color-stage-pruebas);
+  --color-stage-entregado: var(--color-stage-entregado);
+
+  --font-display: var(--font-display);
+  --font-body: var(--font-body);
+  --font-mono: var(--font-mono);
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-ink);
+}
+
+input,
+textarea,
+select {
+  color-scheme: light;
+}
+
+/* Chrome injects its own text/background color into autofilled fields via an
+   internal CSS transition, which tends to surface specifically when a field
+   becomes active/focused. Neutralize it: freeze the transition so Chrome's
+   colors never get a chance to render, and force our own colors instead. */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-text-fill-color: var(--color-ink);
+  caret-color: var(--color-ink);
+  box-shadow: 0 0 0 1000px var(--color-paper) inset;
+  transition: background-color 9999s ease-in-out 0s;
+}
+
+/* Faint diagonal hazard-stripe texture, used sparingly as a brand accent strip. */
+.hazard-strip {
+  background-image: repeating-linear-gradient(
+    -45deg,
+    var(--color-safety) 0px,
+    var(--color-safety) 10px,
+    var(--color-steel) 10px,
+    var(--color-steel) 20px
+  );
+}
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-rise-in {
+  animation: rise-in 0.35s ease-out both;
+}
