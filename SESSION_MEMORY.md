@@ -2,7 +2,7 @@
 
 This file tracks the current state of development and next-session priorities. **Instruction for Claude:** At the end of every work session, you must update this file with the accomplished goals, technical findings, and immediate next steps.
 
-## 🗓️ Last Updated: 2026-07-30
+## 🗓️ Last Updated: 2026-07-31
 
 ## 🚦 Overall Project Status
 - **Architecture Decision:** Unified **Next.js (TypeScript + Tailwind + App Router)** application. No separate backend — API logic lives in `src/app/api/*` Route Handlers.
@@ -16,6 +16,8 @@ This file tracks the current state of development and next-session priorities. *
 - **Per-card activity log ("who did what, when") + named worker identity:** ✅ Done — see below. Client asked for this so multiple people sharing a role stay distinguishable on a shared Kanban card.
 - **Real authentication (Auth.js/NextAuth, self-hosted, username+password, server-enforced roles):** ✅ Done — see below. Replaces the old client-only role simulator entirely. The "who did what" activity log is now attributed from a verified session, not a free-text name.
 - **Full mobile responsive pass (every screen usable on phone browsers, not just PC):** ✅ Done — see below. Client explicitly requires the app to work equally well on mobile and desktop.
+- **Git/GitHub set up** (`https://github.com/TUNGARX/app_taller`, `main` branch, SSH auth) — ✅ Done. See Blockers for the credential-manager gotcha hit while setting this up.
+- **Real logo integrated + Cita status progression + final loose-end triage:** ✅ Done — see below.
 - **Database Connection (real Google Sheets API):** ❌ Not started — intentionally deferred until UI is fully prototyped offline. **This is the next session's stated focus.**
 - **Third-Party API Integrations (Google Drive / WhatsApp Business Cloud API / Google Calendar for citas):** ❌ Not started.
 
@@ -111,18 +113,33 @@ Client requirement: the app must feel smooth on mobile browsers, not just PC —
 - [x] **Verified in-browser at a 375px viewport** (no horizontal page overflow on any screen — landing, dashboard, citas, staff, buscar, and with the Nueva Orden / Orden Detalle modals open) and re-confirmed the **desktop** layout is unchanged at 1280px (8-column Kanban, 5-tile stat row still render at full column count).
 - [x] `npx tsc --noEmit` / `npm run lint` clean throughout.
 
+## 🎯 Completed Work — GitHub Setup, Real Logo, Cita Status, Final Loose Ends (2026-07-31)
+
+**Git/GitHub:**
+- [x] Initialized a local git repo (there was none before this — every prior session's work lived only on disk with no history/backup). `.gitignore` already excluded `.env*`, `/data` (the SQLite users DB), and now also `.claude/settings.local.json` (machine-specific tool permissions, not shared config).
+- [x] Pushed to `https://github.com/TUNGARX/app_taller` on `main`. **Recommendation given to the user**: connect DigitalOcean App Platform directly to this GitHub repo for auto-deploy-on-push — simpler and safer than manual server management, with easy rollback to any prior commit.
+- [x] Switched from HTTPS to **SSH** for git auth per the user's request — generated a dedicated `ed25519` key (`~/.ssh/id_ed25519_github`), user added the public key to their GitHub account, verified with `ssh -T git@github.com`. See Blockers for a real gotcha hit while setting up HTTPS auth first.
+
+**Real logo:**
+- [x] Client sent their actual logo (car outline + "automotivo" wordmark + "Nuestro motivo sos vos" slogan) — saved to `public/logo.jpg`. **This also confirms `TALLER_CONFIG`'s business info was correct** (name and slogan match the real logo exactly) — no changes needed there.
+- [x] Replaced the placeholder "TALLER." text wordmark with the real logo image (wrapped in a small white rounded badge for contrast, since the logo has a white background and the nav/landing/portal all use the dark `steel` theme) in: `StaffNav.tsx`, `(portal)/layout.tsx`, and the landing page hero (`app/page.tsx`). Also added it to the PDF header (`CotizacionPdfDocument.tsx`, via `@react-pdf/renderer`'s `Image`) and updated the browser tab title/metadata to "Automotivo - Gestión de Taller".
+- [x] **Found and fixed a real middleware bug while testing this**: `src/middleware.ts`'s matcher only excluded `_next/static`/`_next/image`/`favicon.ico` — any *other* static file in `/public` (like the new logo) was being intercepted by the auth middleware and redirected to `/` for unauthenticated requests, since it wasn't in the explicit public-paths allow-list. Fixed by broadening the matcher to exclude any path with a file extension (`.*\..*$`), the standard Next.js middleware pattern — this would have silently broken any future image/asset added to `/public` for a logged-out visitor (the landing page and portal logo both needed this).
+- [x] Dirup data migration: **client will handle this separately and start fresh with this app** — dropped from next steps, nothing to build here.
+- [x] Cotización line-item editing: **client confirmed the current write-once-after-creation behavior is fine** — dropped from next steps.
+
+**Cita status progression:**
+- [x] New `setCitaEstado()` in `src/lib/mock-db/index.ts` + `PATCH /api/citas/[id]` route — lets staff advance a Cita through `Programada → Confirmada → Completada`, or cancel it at any point. Restricted server-side to Owner/Secretary (a Mechanic gets a 403, matching the existing `RoleGuard` on the `/citas` page) via `requireActor()` + an explicit role check.
+- [x] `CitaScheduler.tsx`: each upcoming appointment now shows status-appropriate action buttons (Programada → Confirmar/Cancelar; Confirmada → Marcar Completada/Cancelar; terminal states show none), calling the new route and updating local state from the response.
+- [x] Verified end-to-end in the browser (advanced a real appointment from Programada → Confirmada, confirmed the badge and buttons updated correctly) and via curl (confirmed a Mechanic session gets 403).
+- [x] `npx tsc --noEmit` / `npm run lint` clean throughout.
+
 ## 📋 Next Steps (Immediate Priorities for Next Session)
 1. **🎯 Google Drive/Sheets integration (user's stated plan):** set up a **dev/test Google account** and create the 5 Sheets tabs (`Clientes`, `Vehiculos`, `Citas`, `Ordenes_Trabajo`, `Cotizaciones`) plus a Drive folder for evidence photos, matching `src/lib/types/index.ts` (now includes the questionnaire's new fields — make sure the real Sheets columns match, e.g. `tipoOrden`, `kilometraje`, `combustible`, `horaIngreso`/`horaSalida`, `notas`, `actividad`, `estado`/`pagada`/`seguimiento` on Cotizaciones). `actividad` and `notas` are both arrays-of-objects on a single order — decide whether that's a JSON-blob cell, a nested sheet, or a separate "Actividad" tab keyed by `ordenId` before modeling it in Sheets. Build the real Sheets/Drive API integration to replace `src/lib/mock-db` — the `index.ts` accessor/mutation functions are the exact swap boundary; nothing above that layer should need to change if done right.
 2. **Google Calendar integration for citas** — per the questionnaire, appointment reminders should sync to Google Calendar (not WhatsApp/email). Needs its own OAuth scope/credentials, separate from Sheets/Drive.
-3. **Then: deploy to DigitalOcean App Platform**, per the business plan in `PROJECT_CONTEXT.MD`.
-4. **Get an actual logo file from the client** — the PDF/print header currently just uses the shop's text wordmark; the questionnaire asked for a real logo image.
-5. **Get a Dirup data export from the client** — they want historical service/invoice data migrated in; nothing can be built here until an actual export file exists.
-6. **Confirm the `TALLER_CONFIG` business info is correct** (name/phone/email/hours/address) — it was inferred from the user's reference PDF, not explicitly given.
-7. Let staff change a Cita's `estado` (`Confirmada`/`Completada`/`Cancelada`) — currently every Cita is created as `"Programada"` and never advances.
-8. Consider whether a Cotización needs a line-item "edit" path (currently write-once for the items themselves — only estado/pagada can change after creation).
-9. Consider a dedicated "historial de fotos" view on `/buscar` so clients can also see evidence photos, not just staff.
-10. Consider whether the PDF should also be downloadable from the public `/buscar` portal so clients can grab their own Factura, not just staff from the dashboard.
-11. **Auth fast-follow (not urgent, note for whenever it comes up):** the Owner currently manages staff exclusively through the in-app `/staff` page — no external dashboard to fall back on, which is by design for this option. If email-based password reset is ever wanted, that requires adding an SMTP integration and switching the login identifier from username to email — a real design change, not a small tweak, so don't do it casually.
+3. **Then: deploy to DigitalOcean App Platform** (connect it to the now-existing GitHub repo for auto-deploy), per the business plan in `PROJECT_CONTEXT.MD`.
+4. Consider a dedicated "historial de fotos" view on `/buscar` so clients can also see evidence photos, not just staff.
+5. Consider whether the PDF should also be downloadable from the public `/buscar` portal so clients can grab their own Factura, not just staff from the dashboard.
+6. **Auth fast-follow (not urgent, note for whenever it comes up):** the Owner currently manages staff exclusively through the in-app `/staff` page — no external dashboard to fall back on, which is by design for this option. If email-based password reset is ever wanted, that requires adding an SMTP integration and switching the login identifier from username to email — a real design change, not a small tweak, so don't do it casually.
 12. **`data/taller.db` needs to be part of the DigitalOcean deploy/backup plan** — unlike the in-memory mock-db (expected to reset), this SQLite file holds real user credentials and must persist across deploys and be included in whatever backup strategy the shop ends up with.
 
 ## ⚠️ Blockers & Technical Notes
@@ -135,6 +152,7 @@ Client requirement: the app must feel smooth on mobile browsers, not just PC —
 - **`src/middleware.ts` must only import `@/auth.config` (the edge-safe split), never `@/auth` directly** — the full config pulls in `better-sqlite3`/`node:fs` via `src/lib/db/users.ts`, which crashes the Edge runtime. See the "Real Authentication" section above if this trips anyone up again.
 - **The Claude_Browser automation tool was unreliable this session** (stale element refs across navigations, screenshots timing out, tabs silently disappearing) — the auth flows ended up being verified via `curl` with cookie jars instead, which worked reliably. If browser automation acts up again, don't fight it — a scripted curl session against the dev server is a solid fallback for anything involving cookies/sessions.
 - **Same tool also showed an unexplained viewport/breakpoint quirk during the mobile pass**: at a resized 375px viewport, elements using `sm:grid-cols-2` sometimes still rendered as 2 columns (confirmed via actual element bounding-box positions, not just computed style) even though `sm:grid-cols-3` on an identical-pattern element in the same page correctly stayed single-column, and `window.matchMedia('(min-width: 640px)').matches` correctly reported `false`. That inconsistency (same breakpoint, same viewport, different behavior for `-2` vs `-3`) points to a sandbox/DPI-scaling artifact in this specific tool rather than a real CSS bug — the source is confirmed correct and matches the identical responsive pattern already used elsewhere in this codebase (the Kanban board grid, the staff form). No page ever showed actual horizontal overflow in any test. **Still, do a quick real-phone or real-Chrome-DevTools-device-emulation check of the multi-field forms (Nueva Orden, Agendar Cita, crear cotización) before fully trusting this pass** — that's the one thing this session's tooling couldn't give a fully trustworthy visual confirmation of.
+- **Git Credential Manager gotcha hit while setting up GitHub auth**: an early attempt to fix a failed push set `git config --global credential.https://github.com.provider generic`, which forces GCM's legacy basic-auth prompt (username+password) instead of letting it auto-detect github.com and use the proper OAuth/browser flow — GitHub rejects basic auth outright ("Password authentication is not supported"), so every push failed instantly with no visible prompt at all. Fixed by removing that override (`git config --global --unset credential.https://github.com.provider`); after that, `git push` correctly triggered GCM's browser-based GitHub login on the first real attempt. **If a fresh push to GitHub fails instantly with "Invalid username or token" and no browser window appears, check for this override first** before assuming credentials are missing or corrupted.
 - The project folder name ("APP TALLER") contains a space and capital letters, which `create-next-app` rejects as an npm package name. If re-scaffolding anything, scaffold in a temp dir and move files in.
 - All in-memory writes reset on dev server restart — this is expected and fine for prototyping.
 - Photo evidence is stored as base64 `data:` URLs in memory for now; real implementation will use Google Drive public preview links (`https://googleusercontent.com`) once that integration is built. Don't be surprised if the mock DB's memory footprint grows if many photos are uploaded during a long dev session — it's not persisted anywhere, just RAM.

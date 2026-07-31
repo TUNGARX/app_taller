@@ -9,6 +9,7 @@ import type {
   Cliente,
   Cotizacion,
   CotizacionItem,
+  EstadoCita,
   EstadoCotizacion,
   EstadoKanban,
   NivelCombustible,
@@ -114,6 +115,15 @@ export function getHistorialVehiculo(vehiculoId: string) {
     .sort((a, b) => (a.orden.fechaIngreso < b.orden.fechaIngreso ? 1 : -1));
 
   return { vehiculo, ordenes };
+}
+
+/** Advances or cancels a Cita — e.g. Confirmada once the client confirms,
+ *  Completada once they show up, or Cancelada at any point. */
+export function setCitaEstado(citaId: string, estado: EstadoCita): Cita {
+  const cita = citas.find((c) => c.id === citaId);
+  if (!cita) throw new Error("Cita no encontrada.");
+  cita.estado = estado;
+  return cita;
 }
 
 /** All citas, newest first, with the cliente/vehiculo already resolved for display. */

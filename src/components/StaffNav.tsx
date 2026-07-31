@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { ROLE_LABEL, nombreMostrado, useRole } from "@/lib/role-context";
 import type { Rol } from "@/lib/types";
@@ -19,9 +20,9 @@ export default function StaffNav() {
   return (
     <header className="sticky top-0 z-20 bg-steel text-white">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6">
-        <Link href="/" className="flex items-baseline gap-2" onClick={() => setMenuAbierto(false)}>
-          <span className="font-display text-2xl tracking-wide text-white">
-            TALLER<span className="text-safety">.</span>
+        <Link href="/" className="flex items-center gap-3" onClick={() => setMenuAbierto(false)}>
+          <span className="flex items-center rounded-md bg-white px-2 py-1">
+            <Image src="/logo.jpg" alt="Automotivo" width={897} height={545} className="h-7 w-auto" priority />
           </span>
           <span className="hidden font-mono text-[11px] uppercase tracking-[0.2em] text-white/50 sm:inline">
             Gestión de Órdenes

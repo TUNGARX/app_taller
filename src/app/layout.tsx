@@ -25,8 +25,8 @@ const mono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Taller Mecánico - Gestión",
-  description: "Sistema de gestión para taller automotriz",
+  title: "Automotivo - Gestión de Taller",
+  description: "Sistema de gestión para Automotivo — nuestro motivo sos vos.",
 };
 
 export default function RootLayout({

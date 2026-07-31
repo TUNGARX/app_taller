@@ -1,4 +1,4 @@
-import { Document, Page, StyleSheet, Text, View } from "@react-pdf/renderer";
+import { Document, Image, Page, StyleSheet, Text, View } from "@react-pdf/renderer";
 import { calcularTotalesCotizacion } from "@/lib/cotizacion-calc";
 import { formatColonesPdf, formatFecha } from "@/lib/format";
 import { TALLER_CONFIG } from "@/lib/taller-config";
@@ -7,6 +7,7 @@ import type { Cliente, Cotizacion, OrdenTrabajo, Vehiculo } from "@/lib/types";
 const styles = StyleSheet.create({
   page: { padding: 32, fontSize: 9, fontFamily: "Helvetica", color: "#171412" },
   headerRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" },
+  logo: { width: 90, height: 55 },
   presupuestoTitulo: { fontSize: 14, fontWeight: 700 },
   fecha: { fontSize: 8, fontStyle: "italic", marginTop: 2 },
   tallerNombre: { fontSize: 11, fontWeight: 700, marginTop: 6 },
@@ -86,6 +87,8 @@ export default function CotizacionPdfDocument({
               {TALLER_CONFIG.horario} | {TALLER_CONFIG.direccion}
             </Text>
           </View>
+          {/* eslint-disable-next-line jsx-a11y/alt-text -- this is @react-pdf/renderer's PDF-content Image, not an HTML <img>; it has no alt prop */}
+          <Image style={styles.logo} src="/logo.jpg" />
         </View>
 
         <View style={styles.seccion}>

@@ -41,5 +41,10 @@ export default auth((req) => {
 });
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+  // Exclude Next's internal assets AND any static file in /public (logo,
+  // icons, etc. — anything with a dot-extension) — otherwise middleware
+  // intercepts them and redirects unauthenticated requests to "/" before
+  // they ever reach the actual asset, which is exactly what broke the
+  // logo image on the public landing/portal pages.
+  matcher: ["/((?!_next/static|_next/image|.*\\..*$).*)"],
 };

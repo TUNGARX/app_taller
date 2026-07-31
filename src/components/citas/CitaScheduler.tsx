@@ -2,7 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import { formatFecha } from "@/lib/format";
-import type { Cita, Cliente, Vehiculo } from "@/lib/types";
+import type { Cita, Cliente, EstadoCita, Vehiculo } from "@/lib/types";
 
 interface VehiculoConCliente {
   vehiculo: Vehiculo;
@@ -46,9 +46,28 @@ export default function CitaScheduler({
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [exito, setExito] = useState<string | null>(null);
+  const [actualizandoId, setActualizandoId] = useState<string | null>(null);
 
   function actualizar<K extends keyof typeof CAMPOS_VACIOS>(campo: K, valor: string) {
     setCampos((prev) => ({ ...prev, [campo]: valor }));
+  }
+
+  async function cambiarEstadoCita(citaId: string, estado: EstadoCita) {
+    setActualizandoId(citaId);
+    try {
+      const res = await fetch(`/api/citas/${citaId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ estado }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "No se pudo actualizar la cita.");
+      setCitas((prev) => prev.map((c) => (c.cita.id === citaId ? { ...c, cita: data } : c)));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "No se pudo actualizar la cita.");
+    } finally {
+      setActualizandoId(null);
+    }
   }
 
   async function enviar(e: FormEvent) {
@@ -288,7 +307,7 @@ export default function CitaScheduler({
               key={cita.id}
               className="animate-rise-in rounded-lg border border-black/10 bg-paper px-4 py-3"
             >
-              <div className="flex items-center justify-between">
+              <div className="flex flex-wrap items-center justify-between gap-2">
                 <span className="font-mono text-sm font-semibold text-ink">
                   {vehiculo?.placa ?? "—"}
                 </span>
@@ -300,6 +319,39 @@ export default function CitaScheduler({
               <p className="mt-1 text-xs text-ink/50">
                 {formatFecha(cita.fecha)} · {cita.hora} — {cita.motivo}
               </p>
+
+              {(cita.estado === "Programada" || cita.estado === "Confirmada") && (
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {cita.estado === "Programada" && (
+                    <button
+                      type="button"
+                      disabled={actualizandoId === cita.id}
+                      onClick={() => cambiarEstadoCita(cita.id, "Confirmada")}
+                      className="rounded-md border border-black/15 px-2.5 py-1 text-xs font-medium text-ink/70 transition-colors hover:bg-black/5 disabled:opacity-50"
+                    >
+                      Confirmar
+                    </button>
+                  )}
+                  {cita.estado === "Confirmada" && (
+                    <button
+                      type="button"
+                      disabled={actualizandoId === cita.id}
+                      onClick={() => cambiarEstadoCita(cita.id, "Completada")}
+                      className="rounded-md bg-steel px-2.5 py-1 text-xs font-medium text-white transition-colors hover:bg-safety disabled:opacity-50"
+                    >
+                      Marcar Completada
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    disabled={actualizandoId === cita.id}
+                    onClick={() => cambiarEstadoCita(cita.id, "Cancelada")}
+                    className="rounded-md border border-black/15 px-2.5 py-1 text-xs font-medium text-stage-repuestos transition-colors hover:bg-stage-repuestos/10 disabled:opacity-50"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              )}
             </li>
           ))}
         </ul>

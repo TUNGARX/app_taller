@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { citas, ordenesTrabajo } from "@/lib/mock-db";
 import IngresoPanel from "@/components/IngresoPanel";
@@ -16,9 +17,16 @@ export default function Home() {
         <p className="animate-rise-in font-mono text-xs uppercase tracking-[0.35em] text-white/40">
           Sistema de Gestión de Taller
         </p>
-        <h1 className="animate-rise-in mt-3 font-display text-6xl tracking-wide text-white sm:text-7xl">
-          TALLER<span className="text-safety">.</span>
-        </h1>
+        <div className="animate-rise-in mt-4 rounded-xl bg-white px-6 py-4 sm:px-8 sm:py-5">
+          <Image
+            src="/logo.jpg"
+            alt="Automotivo — Nuestro motivo sos vos"
+            width={897}
+            height={545}
+            className="h-16 w-auto sm:h-20"
+            priority
+          />
+        </div>
         <p className="animate-rise-in mt-4 max-w-md text-white/60">
           Del diagnóstico a la entrega — cada orden de trabajo bajo control.
         </p>
