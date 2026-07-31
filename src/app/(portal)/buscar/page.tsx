@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from "react";
 import { STAGE_BG } from "@/lib/kanban-colors";
 import { formatColones, formatFecha } from "@/lib/format";
+import DescargarCotizacionPdfButton from "@/components/kanban/DescargarCotizacionPdfButton";
 import type { Cliente, Cotizacion, OrdenTrabajo, Vehiculo } from "@/lib/types";
 
 interface OrdenConCotizacion {
@@ -124,6 +125,36 @@ export default function BuscarPage() {
                   )}
                 </p>
               )}
+
+              {ordenActual?.cotizacion?.estado === "Aprobada" && ordenActual.cotizacion.pagada && (
+                <div className="mt-3">
+                  <DescargarCotizacionPdfButton
+                    cotizacion={ordenActual.cotizacion}
+                    orden={ordenActual.orden}
+                    vehiculo={resultado.vehiculo}
+                    cliente={resultado.cliente}
+                  />
+                </div>
+              )}
+
+              {ordenActual && ordenActual.orden.fotos.length > 0 && (
+                <div className="mt-4 border-t border-black/10 pt-4">
+                  <p className="text-xs font-medium uppercase tracking-wide text-ink/50">
+                    Fotos de Evidencia
+                  </p>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {ordenActual.orden.fotos.map((foto, i) => (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        key={i}
+                        src={foto}
+                        alt={`Evidencia ${i + 1}`}
+                        className="h-20 w-20 rounded-md border border-black/10 object-cover"
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             {resultado.ordenes.length > 1 && (
@@ -135,18 +166,45 @@ export default function BuscarPage() {
                   {resultado.ordenes.slice(1).map(({ orden, cotizacion }) => (
                     <li
                       key={orden.id}
-                      className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-black/10 bg-paper px-4 py-3 text-sm"
+                      className="rounded-md border border-black/10 bg-paper px-4 py-3 text-sm"
                     >
-                      <div>
-                        <p className="text-ink/80">{orden.diagnostico || "Sin diagnóstico registrado"}</p>
-                        <p className="mt-0.5 font-mono text-xs text-ink/40">
-                          {formatFecha(orden.fechaIngreso)}
-                        </p>
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div>
+                          <p className="text-ink/80">{orden.diagnostico || "Sin diagnóstico registrado"}</p>
+                          <p className="mt-0.5 font-mono text-xs text-ink/40">
+                            {formatFecha(orden.fechaIngreso)}
+                          </p>
+                        </div>
+                        {cotizacion && (
+                          <span className="font-mono text-xs text-ink/50">
+                            {formatColones(cotizacion.total)}
+                          </span>
+                        )}
                       </div>
-                      {cotizacion && (
-                        <span className="font-mono text-xs text-ink/50">
-                          {formatColones(cotizacion.total)}
-                        </span>
+
+                      {cotizacion?.estado === "Aprobada" && cotizacion.pagada && (
+                        <div className="mt-2">
+                          <DescargarCotizacionPdfButton
+                            cotizacion={cotizacion}
+                            orden={orden}
+                            vehiculo={resultado.vehiculo}
+                            cliente={resultado.cliente}
+                          />
+                        </div>
+                      )}
+
+                      {orden.fotos.length > 0 && (
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          {orden.fotos.map((foto, i) => (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              key={i}
+                              src={foto}
+                              alt={`Evidencia ${i + 1}`}
+                              className="h-16 w-16 rounded-md border border-black/10 object-cover"
+                            />
+                          ))}
+                        </div>
                       )}
                     </li>
                   ))}
