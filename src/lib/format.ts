@@ -42,3 +42,12 @@ export function diasDesde(iso: string): number {
   const hoySinHora = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
   return Math.max(0, Math.round((hoySinHora.getTime() - inicio.getTime()) / 86_400_000));
 }
+
+/** Hours elapsed since a delivery date + time (falls back to start-of-day if
+ *  no hora is recorded). Used to auto-hide old "Entregado" cards. */
+export function horasDesde(fechaIso: string, hora: string | null): number {
+  const [year, month, day] = fechaIso.split("-").map(Number);
+  const [horas, minutos] = (hora ?? "00:00").split(":").map(Number);
+  const momento = new Date(year, month - 1, day, horas, minutos);
+  return (Date.now() - momento.getTime()) / (1000 * 60 * 60);
+}

@@ -12,6 +12,8 @@ export default function OrdenCard({
   puedeRetroceder,
   puedeAvanzar,
   moviendo,
+  archivada = false,
+  onVolverAIngresado,
 }: {
   detalle: OrdenConDetalle;
   onMover: (direccion: 1 | -1) => void;
@@ -19,6 +21,13 @@ export default function OrdenCard({
   puedeRetroceder: boolean;
   puedeAvanzar: boolean;
   moviendo: boolean;
+  /** True for an "Entregado" card old enough to be hidden by default —
+   *  shown only when the board's archive toggle is revealed. */
+  archivada?: boolean;
+  /** Present only on archivada cards: jumps straight back to "Ingresado"
+   *  (e.g. the client came back for a warranty claim) instead of stepping
+   *  back through all 7 intermediate stages one at a time. */
+  onVolverAIngresado?: () => void;
 }) {
   const { rol } = useRole();
   const puedeVerPrecios = rol !== "Mechanic";
@@ -43,6 +52,11 @@ export default function OrdenCard({
           {orden.tipoOrden === "Garantía" && (
             <span className="rounded-full bg-amber px-2 py-0.5 text-[10px] font-semibold text-white">
               Garantía
+            </span>
+          )}
+          {archivada && (
+            <span className="rounded-full border border-ink/20 px-2 py-0.5 text-[10px] font-semibold text-ink/50">
+              +72h
             </span>
           )}
           <span className="font-mono text-[10px] text-ink/40">
@@ -107,6 +121,18 @@ export default function OrdenCard({
           Siguiente ›
         </button>
       </div>
+
+      {onVolverAIngresado && (
+        <button
+          type="button"
+          onClick={onVolverAIngresado}
+          disabled={moviendo}
+          title="El cliente regresó (p. ej. reclamo de garantía) — mueve la orden directamente a Ingresado"
+          className="mt-2 w-full rounded-md border border-amber/40 bg-amber/10 px-2 py-1.5 text-xs font-medium text-amber transition-colors hover:bg-amber/20 disabled:opacity-40"
+        >
+          ↩ Cliente regresó — Volver a Ingresado
+        </button>
+      )}
     </div>
   );
 }

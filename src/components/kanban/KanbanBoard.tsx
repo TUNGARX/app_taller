@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { ORDEN_ESTADOS, type EstadoKanban, type OrdenConDetalle, type Vehiculo } from "@/lib/types";
+import { horasDesde } from "@/lib/format";
 import { useRole } from "@/lib/role-context";
 import OrdenCard from "./OrdenCard";
 import NuevaOrdenForm from "./NuevaOrdenForm";
@@ -10,6 +11,17 @@ import OrdenDetalleModal from "./OrdenDetalleModal";
 interface VehiculoConCliente {
   vehiculo: Vehiculo;
   clienteNombre: string;
+}
+
+// Delivered cards older than this just clutter the board for day-to-day use
+// (the shop asked for this specifically) — they're hidden by default but
+// never deleted, and can always be revealed again via the toggle below.
+const OCULTAR_ENTREGADO_HORAS = 72;
+
+function estaArchivada(detalle: OrdenConDetalle): boolean {
+  const { orden } = detalle;
+  if (orden.estadoKanban !== "Entregado" || !orden.fechaEntrega) return false;
+  return horasDesde(orden.fechaEntrega, orden.horaSalida) > OCULTAR_ENTREGADO_HORAS;
 }
 
 export default function KanbanBoard({
@@ -27,17 +39,9 @@ export default function KanbanBoard({
   const [error, setError] = useState<string | null>(null);
   const [mostrarForm, setMostrarForm] = useState(false);
   const [detalleAbiertoId, setDetalleAbiertoId] = useState<string | null>(null);
+  const [mostrarArchivadas, setMostrarArchivadas] = useState(false);
 
-  async function mover(ordenId: string, direccion: 1 | -1) {
-    if (!rol) return;
-    const actual = ordenes.find((d) => d.orden.id === ordenId);
-    if (!actual) return;
-
-    const indiceActual = ORDEN_ESTADOS.indexOf(actual.orden.estadoKanban);
-    const nuevoIndice = indiceActual + direccion;
-    if (nuevoIndice < 0 || nuevoIndice >= ORDEN_ESTADOS.length) return;
-    const nuevoEstado: EstadoKanban = ORDEN_ESTADOS[nuevoIndice];
-
+  async function actualizarEstado(ordenId: string, nuevoEstado: EstadoKanban) {
     setMoviendoId(ordenId);
     setError(null);
     try {
@@ -58,6 +62,16 @@ export default function KanbanBoard({
     } finally {
       setMoviendoId(null);
     }
+  }
+
+  function mover(ordenId: string, direccion: 1 | -1) {
+    const actual = ordenes.find((d) => d.orden.id === ordenId);
+    if (!actual) return;
+
+    const indiceActual = ORDEN_ESTADOS.indexOf(actual.orden.estadoKanban);
+    const nuevoIndice = indiceActual + direccion;
+    if (nuevoIndice < 0 || nuevoIndice >= ORDEN_ESTADOS.length) return;
+    actualizarEstado(ordenId, ORDEN_ESTADOS[nuevoIndice]);
   }
 
   const detalleAbierto = ordenes.find((d) => d.orden.id === detalleAbiertoId);
@@ -108,13 +122,33 @@ export default function KanbanBoard({
 
       <div className="grid grid-cols-1 gap-4 overflow-x-auto sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8">
         {ORDEN_ESTADOS.map((estado) => {
-          const columna = ordenes.filter((d) => d.orden.estadoKanban === estado);
+          const columnaCompleta = ordenes.filter((d) => d.orden.estadoKanban === estado);
+          const esEntregado = estado === "Entregado";
+          const archivadas = esEntregado ? columnaCompleta.filter(estaArchivada) : [];
+          const columna =
+            esEntregado && !mostrarArchivadas
+              ? columnaCompleta.filter((d) => !estaArchivada(d))
+              : columnaCompleta;
+
           return (
             <div key={estado} className="flex min-w-0 flex-col">
               <div className="mb-3 flex items-baseline justify-between border-b-2 border-ink/10 pb-2">
                 <h2 className="font-display text-xl tracking-wide text-ink">{estado}</h2>
                 <span className="font-mono text-xs text-ink/40">{columna.length}</span>
               </div>
+
+              {esEntregado && archivadas.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setMostrarArchivadas((prev) => !prev)}
+                  className="mb-3 rounded-md border border-dashed border-ink/20 px-2 py-1.5 text-center text-[11px] font-medium text-ink/50 transition-colors hover:border-safety hover:text-ink"
+                >
+                  {mostrarArchivadas
+                    ? "Ocultar entregas antiguas"
+                    : `+${archivadas.length} entregadas hace +72h — Mostrar`}
+                </button>
+              )}
+
               <div className="flex flex-col gap-3">
                 {columna.length === 0 && (
                   <p className="rounded-md border border-dashed border-ink/15 px-3 py-6 text-center text-xs text-ink/30">
@@ -130,6 +164,12 @@ export default function KanbanBoard({
                     puedeAvanzar={ORDEN_ESTADOS.indexOf(estado) < ORDEN_ESTADOS.length - 1}
                     onMover={(direccion) => mover(detalle.orden.id, direccion)}
                     onVerDetalle={() => setDetalleAbiertoId(detalle.orden.id)}
+                    archivada={estaArchivada(detalle)}
+                    onVolverAIngresado={
+                      estaArchivada(detalle)
+                        ? () => actualizarEstado(detalle.orden.id, "Ingresado")
+                        : undefined
+                    }
                   />
                 ))}
               </div>
