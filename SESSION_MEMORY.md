@@ -2,7 +2,7 @@
 
 This file tracks the current state of development and next-session priorities. **Instruction for Claude:** At the end of every work session, you must update this file with the accomplished goals, technical findings, and immediate next steps.
 
-## 🗓️ Last Updated: 2026-07-31 (Kanban plate search)
+## 🗓️ Last Updated: 2026-07-31 (Citas: hide old Completada entries)
 
 ## 🚦 Overall Project Status
 - **Architecture Decision:** Unified **Next.js (TypeScript + Tailwind + App Router)** application. No separate backend — API logic lives in `src/app/api/*` Route Handlers.
@@ -22,6 +22,7 @@ This file tracks the current state of development and next-session priorities. *
 - **Light/dark mode toggle, working on both PC and mobile:** ✅ Done — see below. Client explicitly asked for this as an aesthetic option, available everywhere (landing, portal, staff dashboard).
 - **Delete-account button on `/staff`, and 72h auto-archiving for "Entregado" Kanban cards:** ✅ Done — see below. The open question from last session (does Entregado auto-hide?) is now resolved: yes, after 72h, with a reveal toggle and a direct "back to Ingresado" action for warranty returns.
 - **Plate search bar on the Panel (Kanban board):** ✅ Done — see below. Lets staff find a card by plate across all columns, and auto-reveals a matching card even if it's hidden by the 72h Entregado archive filter.
+- **"Próximas Citas" no longer grows unbounded — old Completada entries drop off after 1 month:** ✅ Done — see below.
 - **Database Connection (real Google Sheets API):** ❌ Not started — intentionally deferred until UI is fully prototyped offline. **This is the next session's stated focus.** Architecture decided: a **Google Cloud service account** (not per-user OAuth) — the service account gets shared access to the Sheets/Drive/Calendar resources directly, no consent screen or user tokens needed. Building/testing against the developer's own Google account first; moving to the client's real account later is just sharing the same resources with the service account + swapping a couple of ID env vars, not a rebuild.
 - **Third-Party API Integrations (Google Drive / WhatsApp Business Cloud API / Google Calendar for citas):** ❌ Not started.
 
@@ -182,6 +183,14 @@ Client request: a find bar next to "+ Nueva Orden" on the Panel to locate a card
 - [x] **Verified live in the browser** at both mobile (375px, input wraps cleanly next to the button, confirmed via `read_page`) and a wider desktop-ish width (confirmed via bounding-rect check, no overflow): searching "CTG" rings `CTG890` and dims the other 4 visible cards; searching "CL456" reveals the archived `CL456789` (confirmed hidden by default beforehand by toggling "Mostrar"/"Ocultar" directly) with the ring applied despite it never having been manually revealed.
   - Note: this session's `javascript_tool`, when reading `getComputedStyle(...).opacity` on the cards, reported `"0"` for every card regardless of match state — traced to the tab being backgrounded, which stalls the `rise-in` CSS keyframe animation's fill state (`animationName` stayed `"rise-in"` indefinitely). This was **not** a real bug — checking the actual `className` string directly (`opacity-30`/`opacity-100`/`ring-2 ring-safety`) confirmed the logic was applying correctly; the earlier "Blockers" note about this browser tool's visual-verification quirks (screenshots, stale refs) applies here too — prefer reading `className`/DOM state directly over trusting `getComputedStyle` opacity/animation values when the tab may not be focused.
 - [x] `npx tsc --noEmit` / `npm run lint` clean. Committed as `21f9ac2`, pushed to `origin/main`.
+
+## 🎯 Completed Work — Hide Old Completada Citas (2026-07-31)
+Client request: in "Agendar Cita"'s "Próximas Citas" list, completed appointments must drop off after 1 month so the list doesn't grow forever.
+
+- [x] **`CitaScheduler.tsx`**: reused the existing `horasDesde(fechaIso, hora)` helper from `src/lib/format.ts` (same one the 72h Entregado auto-archiving already uses) — `estaVencida(cita)` is true when `cita.estado === "Completada"` and `horasDesde(cita.fecha, cita.hora) > 24 * 30` (~1 month). The "Próximas Citas" list filters these out before rendering (`citas.filter(({ cita }) => !estaVencida(cita))`).
+- [x] **Purely a display filter, same as Entregado** — nothing is deleted from `citas` state or the mock-db; a `Programada`/`Confirmada`/`Cancelada` cita is never affected regardless of age, only a `Completada` one older than a month. Unlike the Kanban Entregado feature, the user did not ask for a reveal/unhide toggle here, so none was added — keep it that way unless asked.
+- [x] Verified in the browser: current seeded Completada citas (all within the last ~9 days) still show correctly, confirming the filter doesn't over-trigger; the underlying date math is the same helper already verified working for the 72h Kanban case.
+- [x] `npx tsc --noEmit` / `npm run lint` clean.
 
 ## 📋 Next Steps (Immediate Priorities for Next Session)
 1. **🎯 Google Drive/Sheets integration (user's stated plan):** architecture decided — a **Google Cloud service account** (see Status section above), shared access to Sheets/Drive resources directly, no OAuth consent flow. Set up the Cloud project + service account under the developer's own Google account for now; create the 5 Sheets tabs (`Clientes`, `Vehiculos`, `Citas`, `Ordenes_Trabajo`, `Cotizaciones`) plus a Drive folder for evidence photos, matching `src/lib/types/index.ts` (now includes the questionnaire's new fields — make sure the real Sheets columns match, e.g. `tipoOrden`, `kilometraje`, `combustible`, `horaIngreso`/`horaSalida`, `notas`, `actividad`, `estado`/`pagada`/`seguimiento` on Cotizaciones). `actividad` and `notas` are both arrays-of-objects on a single order — decide whether that's a JSON-blob cell, a nested sheet, or a separate "Actividad" tab keyed by `ordenId` before modeling it in Sheets. Build the real Sheets/Drive API integration to replace `src/lib/mock-db` — the `index.ts` accessor/mutation functions are the exact swap boundary; nothing above that layer should need to change if done right. **When ready to move to the client's real account: create the same Sheets/folder in their Drive, share with the service account's email, swap the ID env vars — no code changes.**

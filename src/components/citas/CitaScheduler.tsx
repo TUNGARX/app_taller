@@ -1,8 +1,17 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { formatFecha } from "@/lib/format";
+import { formatFecha, horasDesde } from "@/lib/format";
 import type { Cita, Cliente, EstadoCita, Vehiculo } from "@/lib/types";
+
+// A "Completada" appointment just sits in the list forever otherwise —
+// drop it from view a month after its date so the list doesn't grow
+// without bound. Purely a display filter, nothing is deleted.
+const OCULTAR_COMPLETADA_HORAS = 24 * 30;
+
+function estaVencida(cita: Cita): boolean {
+  return cita.estado === "Completada" && horasDesde(cita.fecha, cita.hora) > OCULTAR_COMPLETADA_HORAS;
+}
 
 interface VehiculoConCliente {
   vehiculo: Vehiculo;
@@ -302,7 +311,7 @@ export default function CitaScheduler({
       <div>
         <h2 className="font-display text-xl tracking-wide text-ink/70">Próximas Citas</h2>
         <ul className="mt-3 space-y-2">
-          {citas.map(({ cita, cliente, vehiculo }) => (
+          {citas.filter(({ cita }) => !estaVencida(cita)).map(({ cita, cliente, vehiculo }) => (
             <li
               key={cita.id}
               className="animate-rise-in rounded-lg border border-ink/10 bg-paper px-4 py-3"
