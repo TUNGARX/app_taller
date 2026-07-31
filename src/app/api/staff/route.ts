@@ -1,6 +1,12 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { crearUsuario, listarUsuarios, reiniciarPassword } from "@/lib/db/users";
+import {
+  crearUsuario,
+  eliminarUsuario,
+  getUsuarioPublicoPorId,
+  listarUsuarios,
+  reiniciarPassword,
+} from "@/lib/db/users";
 import type { Rol } from "@/lib/types";
 
 const ROLES_VALIDOS: Rol[] = ["Owner", "Secretary", "Mechanic"];
@@ -88,6 +94,44 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ ok: true });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Error al reiniciar la contraseña.";
+    return NextResponse.json({ error: message }, { status: 400 });
+  }
+}
+
+// Removes a staff account — e.g. an employee who was let go or left. Past
+// activity/notes attributed to them are untouched (those store the name as
+// plain text, not a reference to this account), so history stays intact.
+export async function DELETE(request: Request) {
+  const check = await requerirOwner();
+  if (check.error) return check.error;
+
+  let body: { id?: number };
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Cuerpo de solicitud inválido." }, { status: 400 });
+  }
+
+  if (!body.id) {
+    return NextResponse.json({ error: "id es obligatorio." }, { status: 400 });
+  }
+
+  const objetivo = getUsuarioPublicoPorId(body.id);
+  if (!objetivo) {
+    return NextResponse.json({ error: "Usuario no encontrado." }, { status: 404 });
+  }
+  if (objetivo.usuario === check.session.user.usuario) {
+    return NextResponse.json(
+      { error: "No puede eliminar su propia cuenta mientras tiene sesión iniciada." },
+      { status: 400 }
+    );
+  }
+
+  try {
+    eliminarUsuario(body.id);
+    return NextResponse.json({ ok: true });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Error al eliminar el usuario.";
     return NextResponse.json({ error: message }, { status: 400 });
   }
 }

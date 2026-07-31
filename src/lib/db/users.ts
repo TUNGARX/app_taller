@@ -108,7 +108,7 @@ function aPublico(user: Usuario): UsuarioPublico {
   };
 }
 
-function getUsuarioPublicoPorId(id: number): UsuarioPublico | undefined {
+export function getUsuarioPublicoPorId(id: number): UsuarioPublico | undefined {
   const row = db.prepare("SELECT * FROM users WHERE id = ?").get(id) as
     | Usuario
     | undefined;
@@ -130,6 +130,26 @@ export function listarUsuarios(): UsuarioPublico[] {
     .prepare("SELECT * FROM users ORDER BY createdAt ASC")
     .all() as Usuario[];
   return rows.map(aPublico);
+}
+
+function contarOwners(): number {
+  const row = db.prepare("SELECT COUNT(*) AS n FROM users WHERE rol = 'Owner'").get() as {
+    n: number;
+  };
+  return row.n;
+}
+
+/** Deletes a staff account (e.g. an employee who was let go or left).
+ *  Past activity/notes attributed to them are untouched — those store the
+ *  person's name as plain text, not a reference to this row, so the "who
+ *  did what" history stays intact after the account is gone. */
+export function eliminarUsuario(id: number): void {
+  const usuario = getUsuarioPublicoPorId(id);
+  if (!usuario) throw new Error("Usuario no encontrado.");
+  if (usuario.rol === "Owner" && contarOwners() <= 1) {
+    throw new Error("No se puede eliminar al único dueño registrado.");
+  }
+  db.prepare("DELETE FROM users WHERE id = ?").run(id);
 }
 
 export function cambiarPassword(userId: number, nuevaPassword: string): void {

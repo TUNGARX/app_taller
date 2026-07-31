@@ -32,6 +32,10 @@ export default function StaffPage() {
   const [reiniciando, setReiniciando] = useState(false);
   const [avisoReinicio, setAvisoReinicio] = useState<string | null>(null);
 
+  const [eliminarId, setEliminarId] = useState<number | null>(null);
+  const [eliminando, setEliminando] = useState(false);
+  const [errorEliminar, setErrorEliminar] = useState<string | null>(null);
+
   async function cargarUsuarios() {
     setCargando(true);
     const res = await fetch("/api/staff");
@@ -93,6 +97,26 @@ export default function StaffPage() {
     setAvisoReinicio("Contraseña reiniciada. El usuario deberá cambiarla al ingresar.");
     setReiniciarId(null);
     setPasswordTemporal("");
+  }
+
+  async function eliminar(id: number) {
+    setEliminando(true);
+    setErrorEliminar(null);
+    const res = await fetch("/api/staff", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id }),
+    });
+    const data = await res.json();
+    setEliminando(false);
+
+    if (!res.ok) {
+      setErrorEliminar(data.error ?? "No se pudo eliminar la cuenta.");
+      return;
+    }
+
+    setEliminarId(null);
+    setUsuarios((prev) => prev.filter((u) => u.id !== id));
   }
 
   if (rol !== "Owner") {
@@ -211,14 +235,50 @@ export default function StaffPage() {
                       Cancelar
                     </button>
                   </div>
+                ) : eliminarId === u.id ? (
+                  <div className="flex flex-col items-start gap-1.5 sm:items-end">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-xs text-stage-repuestos">
+                        ¿Eliminar a {u.nombre}?
+                      </span>
+                      <button
+                        type="button"
+                        disabled={eliminando}
+                        onClick={() => eliminar(u.id)}
+                        className="rounded-md bg-stage-repuestos px-3 py-1.5 text-xs font-medium text-white hover:opacity-90 disabled:opacity-50"
+                      >
+                        {eliminando ? "Eliminando..." : "Sí, eliminar"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEliminarId(null);
+                          setErrorEliminar(null);
+                        }}
+                        className="text-xs text-ink/40 hover:text-ink/70"
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                    {errorEliminar && <p className="text-xs text-stage-repuestos">{errorEliminar}</p>}
+                  </div>
                 ) : (
-                  <button
-                    type="button"
-                    onClick={() => setReiniciarId(u.id)}
-                    className="rounded-md border border-ink/15 px-3 py-1.5 text-xs font-medium text-ink/60 hover:border-safety hover:text-ink"
-                  >
-                    Reiniciar contraseña
-                  </button>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setReiniciarId(u.id)}
+                      className="rounded-md border border-ink/15 px-3 py-1.5 text-xs font-medium text-ink/60 hover:border-safety hover:text-ink"
+                    >
+                      Reiniciar contraseña
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEliminarId(u.id)}
+                      className="rounded-md border border-stage-repuestos/30 px-3 py-1.5 text-xs font-medium text-stage-repuestos hover:bg-stage-repuestos/10"
+                    >
+                      Eliminar cuenta
+                    </button>
+                  </div>
                 )}
               </li>
             ))}
