@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getHistorialVehiculo } from "@/lib/mock-db";
+import { getHistorialVehiculo } from "@/lib/db/negocio";
 import { auth } from "@/auth";
 import { ocultarCotizacionSiMecanico } from "@/lib/cotizacion-redaccion";
 

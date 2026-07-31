@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
-import type { Actor } from "@/lib/mock-db";
+import type { Actor } from "@/lib/db/negocio";
 
 export class NoAutenticadoError extends Error {}
 export class SinRolAsignadoError extends Error {}

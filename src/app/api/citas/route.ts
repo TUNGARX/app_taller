@@ -1,10 +1,8 @@
 import { NextResponse } from "next/server";
-import { citas, crearCita, type CrearCitaInput } from "@/lib/mock-db";
+import { listarCitas, crearCita, type CrearCitaInput } from "@/lib/db/negocio";
 
-// Stub route handler backed by the mock DB. Will point at the real
-// "Citas" Google Sheet once the Sheets API integration is built.
 export async function GET() {
-  return NextResponse.json(citas);
+  return NextResponse.json(listarCitas());
 }
 
 export async function POST(request: Request) {

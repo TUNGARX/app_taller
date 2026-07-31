@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server";
-import { getClienteById, getHistorialVehiculo, getVehiculoByPlaca, vehiculos } from "@/lib/mock-db";
+import { getClienteById, getHistorialVehiculo, getVehiculoByPlaca, listarVehiculos } from "@/lib/db/negocio";
 
-// Stub route handler backed by the mock DB. Supports ?placa= for the public
-// portal lookup, returning the vehicle plus its owner and full service history.
-// Will point at the real "Vehiculos" Google Sheet later.
+// Supports ?placa= for the public portal lookup, returning the vehicle plus
+// its owner and full service history.
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const placa = searchParams.get("placa");
@@ -24,5 +23,5 @@ export async function GET(request: Request) {
     });
   }
 
-  return NextResponse.json(vehiculos);
+  return NextResponse.json(listarVehiculos());
 }

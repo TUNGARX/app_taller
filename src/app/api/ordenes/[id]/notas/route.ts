@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { agregarNotaOrden } from "@/lib/mock-db";
+import { agregarNotaOrden } from "@/lib/db/negocio";
 import { requireActor } from "@/lib/auth/getActorFromSession";
 
 // POST { texto } to append a note to a work order's shared comment thread —

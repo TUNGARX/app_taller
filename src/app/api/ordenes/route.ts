@@ -1,10 +1,9 @@
 import { NextResponse } from "next/server";
-import { crearOrden, getOrdenesByEstado, ordenesTrabajo, type CrearOrdenInput } from "@/lib/mock-db";
+import { crearOrden, getOrdenesByEstado, listarOrdenes, type CrearOrdenInput } from "@/lib/db/negocio";
 import { requireActor } from "@/lib/auth/getActorFromSession";
 import { ORDEN_ESTADOS, type EstadoKanban } from "@/lib/types";
 
-// Stub route handler backed by the mock DB. Supports ?estado= for Kanban column
-// filtering. Will point at the real "Ordenes_Trabajo" Google Sheet later.
+// Supports ?estado= for Kanban column filtering.
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const estado = searchParams.get("estado") as EstadoKanban | null;
@@ -19,7 +18,7 @@ export async function GET(request: Request) {
     return NextResponse.json(getOrdenesByEstado(estado));
   }
 
-  return NextResponse.json(ordenesTrabajo);
+  return NextResponse.json(listarOrdenes());
 }
 
 export async function POST(request: Request) {

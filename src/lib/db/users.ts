@@ -22,7 +22,7 @@ export type UsuarioPublico = Omit<Usuario, "passwordHash">;
 // Next.js dev (Turbopack) can instantiate this module more than once across
 // Route Handlers vs. Server Components — stash the DB connection on
 // `globalThis` so every part of the app shares the same open SQLite file,
-// same pattern already used for the in-memory mock-db.
+// same pattern used by the business-data store (src/lib/db/negocio.ts).
 declare global {
   var __tallerUsersDb: Database.Database | undefined;
 }

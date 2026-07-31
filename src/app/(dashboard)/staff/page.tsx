@@ -285,6 +285,21 @@ export default function StaffPage() {
           </ul>
         )}
       </div>
+
+      <div className="mt-8 rounded-lg border border-ink/10 bg-paper p-5">
+        <h2 className="font-display text-xl tracking-wide text-ink/80">Respaldo de Datos</h2>
+        <p className="mt-1 text-sm text-ink/60">
+          Descargue una copia de todos los datos del taller (clientes, vehículos, citas, órdenes
+          y cotizaciones) en un archivo .zip. Guárdelo en un lugar seguro, como su Google Drive,
+          como respaldo.
+        </p>
+        <a
+          href="/api/backup/exportar"
+          className="mt-4 inline-block rounded-lg bg-steel px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-safety"
+        >
+          Descargar respaldo (.zip)
+        </a>
+      </div>
     </div>
   );
 }

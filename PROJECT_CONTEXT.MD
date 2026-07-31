@@ -29,10 +29,10 @@ This document outlines the scope, architecture, and business model for a custom 
 ## 🏗️ Technical Architecture & Hosting
 - **Initial Phase:** Local execution and testing on the developer's machine.
 - **Production Phase:** Hosted on **DigitalOcean App Platform** (Managed PaaS).
-- **Database & Image Storage:** Hybrid architecture connecting directly via API to the client's **Google Drive and Google Sheets** environment.
-  - Data tables reside in sheets (`Clientes`, `Vehiculos`, `Citas`, `Ordenes_Trabajo`, `Cotizaciones`).
-  - Evidence photos taken by mechanics are compressed on the frontend and stored in a specific Google Drive folder. File permissions are programmatically altered to generate direct public preview links inside the application (`https://googleusercontent.com`).
-  - Appointment reminders sync to **Google Calendar** (separate from Sheets/Drive, needs its own API scope/credentials).
+- **Database:** **Self-hosted SQLite** (`data/taller.db`, via `better-sqlite3`), not Google Sheets/Drive. After weighing the two, the client chose a real database over Sheets-as-a-database: Sheets has no transactions, no relational integrity, API rate limits, and is editable by hand (silent-corruption risk) — none of which fit an app tracking real repair-shop records and money. Sheets/Drive as the *data store* is dropped; see `src/lib/db/negocio.ts` for the schema (`Clientes`, `Vehiculos`, `Citas`, `Ordenes_Trabajo`, `Cotizaciones`, plus child tables for notes/activity/photos/quote line-items).
+  - **Backup & disaster recovery:** the Owner can download a CSV/ZIP backup of all business data from `/staff` ("Descargar respaldo (.zip)") — one CSV per table, plus any uploaded evidence photo as a real image file — to keep a copy in his own Google Drive. If the DB is ever corrupted, a developer restores it via `npx tsx scripts/restaurar-respaldo.ts <ruta-al-zip> --confirmar` (deliberately not a self-service in-app button, since a full wipe-and-restore is high-stakes).
+  - Evidence photos are currently stored as base64 `data:` URLs directly in SQLite; a dedicated file/photo storage integration (Google Drive or otherwise) is still a separate, not-yet-built item.
+  - Appointment reminders syncing to **Google Calendar** remains a separate, still-open future item (a notification feature, unrelated to where business data is stored).
 
 ## 💰 Business Model (Monthly SaaS)
 The software operates under a subscription model managed by the developer.

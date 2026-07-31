@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { agregarFotoOrden } from "@/lib/mock-db";
+import { agregarFotoOrden } from "@/lib/db/negocio";
 import { requireActor } from "@/lib/auth/getActorFromSession";
 
 // POST { url } to append an evidence photo to a work order. `url` is a

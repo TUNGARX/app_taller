@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { setCitaEstado } from "@/lib/mock-db";
+import { setCitaEstado } from "@/lib/db/negocio";
 import { requireActor } from "@/lib/auth/getActorFromSession";
 import type { EstadoCita } from "@/lib/types";
 

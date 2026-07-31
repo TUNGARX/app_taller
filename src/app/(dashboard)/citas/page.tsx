@@ -1,9 +1,9 @@
-import { getCitasConDetalle, getClienteById, vehiculos } from "@/lib/mock-db";
+import { getCitasConDetalle, getClienteById, listarVehiculos } from "@/lib/db/negocio";
 import CitaScheduler from "@/components/citas/CitaScheduler";
 import RoleGuard from "@/components/RoleGuard";
 
 export default function CitasPage() {
-  const vehiculosConCliente = vehiculos.map((vehiculo) => ({
+  const vehiculosConCliente = listarVehiculos().map((vehiculo) => ({
     vehiculo,
     clienteNombre: getClienteById(vehiculo.clienteId)?.nombre ?? "Desconocido",
   }));

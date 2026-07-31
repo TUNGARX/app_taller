@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getOrdenById, setCotizacionEstado, setCotizacionPagada } from "@/lib/mock-db";
+import { getOrdenById, setCotizacionEstado, setCotizacionPagada } from "@/lib/db/negocio";
 import { requireActor } from "@/lib/auth/getActorFromSession";
 import type { EstadoCotizacion } from "@/lib/types";
 

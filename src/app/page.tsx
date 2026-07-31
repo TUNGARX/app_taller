@@ -1,11 +1,13 @@
 import Image from "next/image";
 import Link from "next/link";
-import { citas, ordenesTrabajo } from "@/lib/mock-db";
+import { listarCitas, listarOrdenes } from "@/lib/db/negocio";
 import IngresoPanel from "@/components/IngresoPanel";
 import ThemeToggle from "@/components/ThemeToggle";
 
 export default function Home() {
   const hoy = new Date().toISOString().slice(0, 10);
+  const citas = listarCitas();
+  const ordenesTrabajo = listarOrdenes();
   const citasHoy = citas.filter((c) => c.fecha === hoy && c.estado !== "Cancelada").length;
   const activas = ordenesTrabajo.filter((o) => o.estadoKanban !== "Entregado").length;
   const listas = ordenesTrabajo.filter((o) => o.estadoKanban === "Entregado").length;

@@ -1,11 +1,9 @@
 import { NextResponse } from "next/server";
-import { cotizaciones, crearCotizacion, getOrdenById } from "@/lib/mock-db";
+import { listarCotizaciones, crearCotizacion, getOrdenById } from "@/lib/db/negocio";
 import { requireActor } from "@/lib/auth/getActorFromSession";
 import { auth } from "@/auth";
 import type { CotizacionItem } from "@/lib/types";
 
-// Stub route handler backed by the mock DB. Will point at the real
-// "Cotizaciones" Google Sheet once the Sheets API integration is built.
 // Mechanics never see quote prices — same rule enforced in the dashboard's
 // initial payload — so this returns an empty list for that role rather than
 // the raw totals.
@@ -14,7 +12,7 @@ export async function GET() {
   if (session?.user?.rol === "Mechanic") {
     return NextResponse.json([]);
   }
-  return NextResponse.json(cotizaciones);
+  return NextResponse.json(listarCotizaciones());
 }
 
 export async function POST(request: Request) {

@@ -1,13 +1,13 @@
 import {
-  citas,
-  cotizaciones,
   getClienteById,
   getCotizacionByOrdenId,
   getSeguimientosPendientes,
   getVehiculoById,
-  ordenesTrabajo,
-  vehiculos,
-} from "@/lib/mock-db";
+  listarCitas,
+  listarCotizaciones,
+  listarOrdenes,
+  listarVehiculos,
+} from "@/lib/db/negocio";
 import type { OrdenConDetalle } from "@/lib/types";
 import KanbanBoard from "@/components/kanban/KanbanBoard";
 import StatTile from "@/components/StatTile";
@@ -19,6 +19,11 @@ export default async function DashboardPage() {
   const session = await auth();
   const rol = session?.user?.rol ?? null;
   const esMecanico = rol === "Mechanic";
+
+  const ordenesTrabajo = listarOrdenes();
+  const citas = listarCitas();
+  const cotizaciones = listarCotizaciones();
+  const vehiculos = listarVehiculos();
 
   const ordenesDetalle: OrdenConDetalle[] = ordenesTrabajo.map((orden) => {
     const vehiculo = getVehiculoById(orden.vehiculoId)!;

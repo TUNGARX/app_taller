@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getClienteById, getVehiculoById, reabrirOrden } from "@/lib/mock-db";
+import { getClienteById, getVehiculoById, reabrirOrden } from "@/lib/db/negocio";
 import { requireActor } from "@/lib/auth/getActorFromSession";
 import type { TipoOrden } from "@/lib/types";
 

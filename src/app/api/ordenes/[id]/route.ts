@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { moverOrdenEstado } from "@/lib/mock-db";
+import { moverOrdenEstado } from "@/lib/db/negocio";
 import { requireActor } from "@/lib/auth/getActorFromSession";
 import { ORDEN_ESTADOS, type EstadoKanban } from "@/lib/types";
 
