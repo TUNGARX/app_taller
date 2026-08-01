@@ -2,6 +2,9 @@ import { getCitasConDetalle, getClienteById, listarVehiculos } from "@/lib/db/ne
 import CitaScheduler from "@/components/citas/CitaScheduler";
 import RoleGuard from "@/components/RoleGuard";
 
+// Reads live DB data on every render — see src/app/page.tsx for why this is required.
+export const dynamic = "force-dynamic";
+
 export default function CitasPage() {
   const vehiculosConCliente = listarVehiculos().map((vehiculo) => ({
     vehiculo,

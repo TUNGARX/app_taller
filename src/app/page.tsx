@@ -4,6 +4,11 @@ import { listarCitas, listarOrdenes } from "@/lib/db/negocio";
 import IngresoPanel from "@/components/IngresoPanel";
 import ThemeToggle from "@/components/ThemeToggle";
 
+// Reads live DB data on every render (citas/órdenes stat counts) — without
+// this, Next.js has no signal to avoid statically prerendering the page at
+// build time, which would freeze these numbers forever until the next deploy.
+export const dynamic = "force-dynamic";
+
 export default function Home() {
   const hoy = new Date().toISOString().slice(0, 10);
   const citas = listarCitas();
