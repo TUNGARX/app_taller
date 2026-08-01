@@ -3,9 +3,18 @@
 **Live**: https://taller.automotivo.fonsfideishop.com (Droplet IP: 142.93.63.66)
 
 Ubuntu 24.04 LTS Droplet (NYC1), 1GB RAM + 2GB swap, 10GB Volume mounted at
-`/mnt/volume_nyc1_.../taller-data` and symlinked to the app's `data/`
-directory so `data/taller.db` (business data + user accounts) persists
-across deploys and reboots.
+`/mnt/volume_nyc1_.../taller-data` and **bind-mounted** onto the app's
+`data/` directory so `data/taller.db` (business data + user accounts)
+persists across deploys and reboots.
+
+**Use a bind mount, not a symlink, for `data/`.** A symlink was tried first
+and broke the build the moment `data/taller.db` actually existed: Turbopack's
+file tracer follows the symlink during `npm run build` and hard-fails with
+`Symlink [project]/data/taller.db is invalid, it points out of the
+filesystem root` — it worked on the very first build (before the DB file
+existed) and then broke permanently on every rebuild after. A bind mount
+looks like a normal directory to Turpoback (no symlink indirection), so
+it doesn't hit this at all.
 
 DNS for `taller.automotivo.fonsfideishop.com` is managed at Namecheap (a single A record
 for the `app` subdomain), **not** delegated to DigitalOcean — the root
@@ -31,12 +40,16 @@ echo '/swapfile none swap sw 0 0' >> /etc/fstab
 useradd --system --create-home --home-dir /opt/taller-app --shell /usr/sbin/nologin taller
 chmod 755 /opt/taller-app
 
-# data/ lives on the attached Volume, not the ephemeral root disk
+# data/ lives on the attached Volume, not the ephemeral root disk --
+# bind mount, NOT a symlink (see the note above on why).
 mkdir -p /mnt/<volume>/taller-data
 chown -R taller:taller /mnt/<volume>/taller-data
 
 su - taller -s /bin/bash -c 'git clone https://github.com/TUNGARX/app_taller.git /opt/taller-app/app'
-su - taller -s /bin/bash -c 'ln -s /mnt/<volume>/taller-data /opt/taller-app/app/data'
+mkdir /opt/taller-app/app/data
+chown taller:taller /opt/taller-app/app/data
+echo '/mnt/<volume>/taller-data /opt/taller-app/app/data none bind 0 0' >> /etc/fstab
+mount /opt/taller-app/app/data
 
 # See .env.production.example — copy to /opt/taller-app/app/.env.local with a
 # freshly generated AUTH_SECRET, chmod 600.

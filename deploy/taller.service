@@ -1,6 +1,10 @@
 [Unit]
 Description=Automotivo taller-app (Next.js)
 After=network.target
+# data/ is a bind mount onto the attached Volume (see deploy/README.md) --
+# wait for it to actually be mounted before starting, so the app never
+# writes to the wrong (ephemeral) disk after a reboot race.
+RequiresMountsFor=/opt/taller-app/app/data
 
 [Service]
 Type=simple
