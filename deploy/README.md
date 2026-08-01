@@ -1,13 +1,13 @@
 # Deploy Runbook (DigitalOcean Droplet + Volume)
 
-**Live**: https://app.fonsfideishop.com (Droplet IP: 142.93.63.66)
+**Live**: https://taller.automotivo.fonsfideishop.com (Droplet IP: 142.93.63.66)
 
 Ubuntu 24.04 LTS Droplet (NYC1), 1GB RAM + 2GB swap, 10GB Volume mounted at
 `/mnt/volume_nyc1_.../taller-data` and symlinked to the app's `data/`
 directory so `data/taller.db` (business data + user accounts) persists
 across deploys and reboots.
 
-DNS for `app.fonsfideishop.com` is managed at Namecheap (a single A record
+DNS for `taller.automotivo.fonsfideishop.com` is managed at Namecheap (a single A record
 for the `app` subdomain), **not** delegated to DigitalOcean — the root
 domain has an active MX record for Google email, so nameservers were
 deliberately left alone to avoid touching that. Switching to a different
