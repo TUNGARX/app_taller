@@ -1,9 +1,19 @@
 # Deploy Runbook (DigitalOcean Droplet + Volume)
 
-Live setup: Ubuntu 24.04 LTS Droplet (NYC1), 1GB RAM + 2GB swap, 10GB Volume
-mounted at `/mnt/volume_nyc1_.../taller-data` and symlinked to the app's
-`data/` directory so `data/taller.db` (business data + user accounts)
-persists across deploys and reboots.
+**Live**: https://app.fonsfideishop.com (Droplet IP: 142.93.63.66)
+
+Ubuntu 24.04 LTS Droplet (NYC1), 1GB RAM + 2GB swap, 10GB Volume mounted at
+`/mnt/volume_nyc1_.../taller-data` and symlinked to the app's `data/`
+directory so `data/taller.db` (business data + user accounts) persists
+across deploys and reboots.
+
+DNS for `app.fonsfideishop.com` is managed at Namecheap (a single A record
+for the `app` subdomain), **not** delegated to DigitalOcean — the root
+domain has an active MX record for Google email, so nameservers were
+deliberately left alone to avoid touching that. Switching to a different
+domain/subdomain later is simple: point a new A record at the Droplet's IP,
+update `server_name` in `deploy/nginx-taller.conf`, run `certbot --nginx -d
+<new-domain>` again — no rebuild or data migration needed.
 
 ## One-time server setup
 
@@ -41,8 +51,12 @@ rm -f /etc/nginx/sites-enabled/default
 ln -sf /etc/nginx/sites-available/taller /etc/nginx/sites-enabled/taller
 nginx -t && systemctl reload nginx
 
-# Once DNS points a domain at the Droplet's IP:
+# Once DNS points a domain at the Droplet's IP (add the A record at your
+# registrar/DNS host first, confirm with `nslookup <domain>` before running):
 certbot --nginx -d your-domain.example
+# certbot rewrites deploy/nginx-taller.conf in place to add the SSL server
+# block + HTTP->HTTPS redirect -- copy the live file back into this repo
+# afterward so it stays in sync (see nginx-taller.conf's own header comment).
 
 # First Owner account:
 su - taller -s /bin/bash -c 'cd /opt/taller-app/app && npx tsx scripts/seed-owner.ts <usuario> <password> <nombre>'
