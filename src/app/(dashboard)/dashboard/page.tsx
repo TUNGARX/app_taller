@@ -52,7 +52,7 @@ export default async function DashboardPage() {
 
   return (
     <div className="flex-1 bg-bg px-4 py-6 sm:px-6 sm:py-8">
-      <div className="mx-auto max-w-6xl">
+      <div className="mx-auto max-w-[1600px]">
         <h1 className="font-display text-4xl tracking-wide text-ink">Panel de Trabajo</h1>
         <p className="mt-1 text-sm text-ink/60">
           Arrastra el estado con los botones de cada tarjeta para avanzar el flujo del taller.
