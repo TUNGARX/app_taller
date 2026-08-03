@@ -4,7 +4,59 @@ import { useState, type FormEvent } from "react";
 import { STAGE_BG } from "@/lib/kanban-colors";
 import { formatColones, formatFecha } from "@/lib/format";
 import DescargarCotizacionPdfButton from "@/components/kanban/DescargarCotizacionPdfButton";
-import type { Cliente, Cotizacion, OrdenTrabajo, Vehiculo } from "@/lib/types";
+import type { Cliente, Cotizacion, MediaOrden, OrdenTrabajo, Vehiculo } from "@/lib/types";
+
+/** Renders legacy data:-URL photos alongside Drive-backed photos/videos —
+ *  images inline, videos as a tappable thumbnail linking to the Drive
+ *  preview (embedding third-party video players here isn't worth it for a
+ *  handful of clips per order). */
+function MediaEvidencia({
+  fotos,
+  media,
+  tamano,
+}: {
+  fotos: string[];
+  media: MediaOrden[];
+  tamano: string;
+}) {
+  return (
+    <div className="mt-2 flex flex-wrap gap-2">
+      {fotos.map((foto, i) => (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          key={`legacy-${i}`}
+          src={foto}
+          alt={`Evidencia ${i + 1}`}
+          className={`${tamano} rounded-md border border-ink/10 object-cover`}
+        />
+      ))}
+      {media.map((item) =>
+        item.tipo === "video" ? (
+          <a
+            key={item.id}
+            href={item.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={`${tamano} flex flex-col items-center justify-center gap-1 rounded-md border border-ink/10 bg-bg text-ink/60 hover:border-safety hover:text-ink`}
+            title={item.nombre}
+          >
+            <span className="text-2xl">▶</span>
+            <span className="text-[10px]">Video</span>
+          </a>
+        ) : (
+          <a key={item.id} href={item.url} target="_blank" rel="noopener noreferrer">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={item.thumbnailUrl ?? item.url}
+              alt={item.nombre}
+              className={`${tamano} rounded-md border border-ink/10 object-cover`}
+            />
+          </a>
+        )
+      )}
+    </div>
+  );
+}
 
 interface OrdenConCotizacion {
   orden: OrdenTrabajo;
@@ -137,22 +189,12 @@ export default function BuscarPage() {
                 </div>
               )}
 
-              {ordenActual && ordenActual.orden.fotos.length > 0 && (
+              {ordenActual && (ordenActual.orden.fotos.length > 0 || ordenActual.orden.media.length > 0) && (
                 <div className="mt-4 border-t border-ink/10 pt-4">
                   <p className="text-xs font-medium uppercase tracking-wide text-ink/50">
-                    Fotos de Evidencia
+                    Fotos y Videos de Evidencia
                   </p>
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    {ordenActual.orden.fotos.map((foto, i) => (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        key={i}
-                        src={foto}
-                        alt={`Evidencia ${i + 1}`}
-                        className="h-20 w-20 rounded-md border border-ink/10 object-cover"
-                      />
-                    ))}
-                  </div>
+                  <MediaEvidencia fotos={ordenActual.orden.fotos} media={ordenActual.orden.media} tamano="h-20 w-20" />
                 </div>
               )}
             </div>
@@ -193,18 +235,8 @@ export default function BuscarPage() {
                         </div>
                       )}
 
-                      {orden.fotos.length > 0 && (
-                        <div className="mt-2 flex flex-wrap gap-2">
-                          {orden.fotos.map((foto, i) => (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img
-                              key={i}
-                              src={foto}
-                              alt={`Evidencia ${i + 1}`}
-                              className="h-16 w-16 rounded-md border border-ink/10 object-cover"
-                            />
-                          ))}
-                        </div>
+                      {(orden.fotos.length > 0 || orden.media.length > 0) && (
+                        <MediaEvidencia fotos={orden.fotos} media={orden.media} tamano="h-16 w-16" />
                       )}
                     </li>
                   ))}

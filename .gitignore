@@ -36,6 +36,11 @@ yarn-error.log*
 # local SQLite database (user accounts) — never commit real credentials
 /data
 
+# Google service-account key, if ever dropped in the repo instead of only
+# living in an env var — never commit this
+service-account*.json
+google-service-account*.json
+
 # Claude Code local settings (machine-specific permissions, not shared config)
 .claude/settings.local.json
 

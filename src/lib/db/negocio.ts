@@ -10,10 +10,12 @@ import type {
   EstadoCita,
   EstadoCotizacion,
   EstadoKanban,
+  MediaOrden,
   NivelCombustible,
   NotaOrden,
   OrdenTrabajo,
   Rol,
+  TipoMedia,
   TipoOrden,
   Vehiculo,
 } from "@/lib/types";
@@ -114,6 +116,19 @@ function abrirDb(): Database.Database {
     );
     CREATE INDEX IF NOT EXISTS idx_orden_fotos_orden ON orden_fotos(ordenId);
 
+    CREATE TABLE IF NOT EXISTS orden_media (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      ordenId TEXT NOT NULL,
+      tipo TEXT NOT NULL,
+      driveFileId TEXT NOT NULL,
+      url TEXT NOT NULL,
+      thumbnailUrl TEXT,
+      mimeType TEXT NOT NULL,
+      nombre TEXT NOT NULL,
+      fecha TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_orden_media_orden ON orden_media(ordenId);
+
     CREATE TABLE IF NOT EXISTS cotizaciones (
       id TEXT PRIMARY KEY,
       ordenId TEXT NOT NULL,
@@ -141,6 +156,15 @@ function abrirDb(): Database.Database {
       siguiente INTEGER NOT NULL
     );
   `);
+
+  // Migration: `citas` predates the Google Calendar sync feature, so a
+  // production DB already has rows without this column — add it once,
+  // guarded by a pragma check, rather than relying on CREATE TABLE (a no-op
+  // once the table already exists).
+  const columnasCitas = db.prepare("PRAGMA table_info(citas)").all() as { name: string }[];
+  if (!columnasCitas.some((c) => c.name === "eventoGoogleId")) {
+    db.exec("ALTER TABLE citas ADD COLUMN eventoGoogleId TEXT");
+  }
 
   globalThis.__tallerNegocioDb = db;
   return db;
@@ -338,6 +362,14 @@ function obtenerFotos(ordenId: string): string[] {
   return rows.map((r) => r.url);
 }
 
+function obtenerMedia(ordenId: string): MediaOrden[] {
+  return db
+    .prepare(
+      "SELECT id, tipo, driveFileId, url, thumbnailUrl, mimeType, nombre, fecha FROM orden_media WHERE ordenId = ? ORDER BY id ASC"
+    )
+    .all(ordenId) as MediaOrden[];
+}
+
 function obtenerItems(cotizacionId: string): CotizacionItem[] {
   return db
     .prepare(
@@ -362,6 +394,7 @@ function rowToOrden(row: OrdenRow): OrdenTrabajo {
     notas: obtenerNotas(row.id),
     actividad: obtenerActividad(row.id),
     fotos: obtenerFotos(row.id),
+    media: obtenerMedia(row.id),
     fechaIngreso: row.fechaIngreso,
     fechaEntrega: row.fechaEntrega,
   };
@@ -452,6 +485,12 @@ export function setCitaEstado(citaId: string, estado: EstadoCita): Cita {
   if (!cita) throw new Error("Cita no encontrada.");
   db.prepare("UPDATE citas SET estado = ? WHERE id = ?").run(estado, citaId);
   return { ...cita, estado };
+}
+
+/** Stores the Google Calendar event id created for a Cita (or clears it once
+ *  the event has been deleted), so the sync only ever needs one lookup. */
+export function setCitaEventoGoogle(citaId: string, eventoGoogleId: string | null): void {
+  db.prepare("UPDATE citas SET eventoGoogleId = ? WHERE id = ?").run(eventoGoogleId, citaId);
 }
 
 /** All citas, newest first, with the cliente/vehiculo already resolved for display. */
@@ -673,6 +712,7 @@ export function crearCita(input: CrearCitaInput): {
     hora: input.hora,
     motivo: input.motivo,
     estado: "Programada",
+    eventoGoogleId: null,
   });
 
   return { cita, cliente, vehiculo };
@@ -820,6 +860,46 @@ export function agregarFotoOrden(ordenId: string, url: string, actor: Actor): Or
   return getOrdenById(ordenId)!;
 }
 
+export interface NuevoMediaInput {
+  tipo: TipoMedia;
+  driveFileId: string;
+  url: string;
+  thumbnailUrl: string | null;
+  mimeType: string;
+  nombre: string;
+}
+
+/**
+ * Records a Drive-backed photo/video pointer for a work order. Only allowed
+ * while the order hasn't reached "Entregado" — once a job is delivered the
+ * Kanban board never reopens that card (a returning vehicle gets a brand-new
+ * order via reabrirOrden instead), so evidence for a delivered order is
+ * considered final.
+ */
+export function agregarMediaOrden(ordenId: string, media: NuevoMediaInput, actor: Actor): OrdenTrabajo {
+  const orden = getOrdenById(ordenId);
+  if (!orden) throw new Error("Orden no encontrada.");
+  if (orden.estadoKanban === "Entregado") {
+    throw new Error("No se puede agregar evidencia a una orden ya entregada.");
+  }
+
+  db.prepare(
+    `INSERT INTO orden_media (ordenId, tipo, driveFileId, url, thumbnailUrl, mimeType, nombre, fecha)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+  ).run(
+    ordenId,
+    media.tipo,
+    media.driveFileId,
+    media.url,
+    media.thumbnailUrl,
+    media.mimeType,
+    media.nombre,
+    new Date().toISOString().slice(0, 10)
+  );
+  agregarActividad(ordenId, actor, media.tipo === "video" ? "Subió un video de evidencia" : "Subió una foto de evidencia");
+  return getOrdenById(ordenId)!;
+}
+
 /** Adds a timestamped note to a work order — visible to every role, so
  *  mechanics and staff share one comment thread per order. */
 export function agregarNotaOrden(ordenId: string, autor: string, rol: Rol, texto: string): OrdenTrabajo {
@@ -954,6 +1034,7 @@ const TABLAS_RESPALDO = [
   "orden_notas",
   "orden_actividad",
   "orden_fotos",
+  "orden_media",
   "cotizaciones",
   "cotizacion_items",
 ] as const;

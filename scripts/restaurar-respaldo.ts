@@ -24,6 +24,7 @@ const TABLAS = [
   "orden_notas",
   "orden_actividad",
   "orden_fotos",
+  "orden_media",
   "cotizaciones",
   "cotizacion_items",
 ] as const satisfies readonly NombreTablaRespaldo[];
@@ -32,7 +33,9 @@ const TABLAS = [
 // other column keeps "" as a real empty string (e.g. Orden.diagnostico is
 // NOT NULL and defaults to "", it must never become null on restore).
 const COLUMNAS_NULEABLES: Partial<Record<NombreTablaRespaldo, string[]>> = {
+  citas: ["eventoGoogleId"],
   ordenes_trabajo: ["citaId", "ordenOrigenId", "kilometraje", "combustible", "horaIngreso", "horaSalida", "fechaEntrega"],
+  orden_media: ["thumbnailUrl"],
   cotizaciones: ["fechaSeguimiento"],
 };
 
@@ -47,6 +50,7 @@ const COLUMNAS_NUMERICAS: Partial<Record<NombreTablaRespaldo, string[]>> = {
   orden_notas: ["id"],
   orden_actividad: ["id"],
   orden_fotos: ["id"],
+  orden_media: ["id"],
   cotizaciones: ["total", "pagada", "seguimiento"],
   cotizacion_items: ["id", "cantidad", "precioUnitario"],
 };

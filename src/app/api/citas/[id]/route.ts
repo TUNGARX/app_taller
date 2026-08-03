@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
-import { setCitaEstado } from "@/lib/db/negocio";
+import { setCitaEstado, setCitaEventoGoogle } from "@/lib/db/negocio";
 import { requireActor } from "@/lib/auth/getActorFromSession";
+import { googleConfigurado } from "@/lib/google/client";
+import { eliminarEventoCita } from "@/lib/google/calendar";
 import type { EstadoCita } from "@/lib/types";
 
 const ESTADOS_VALIDOS: EstadoCita[] = ["Programada", "Confirmada", "Cancelada", "Completada"];
@@ -35,6 +37,17 @@ export async function PATCH(
 
   try {
     const cita = setCitaEstado(id, body.estado);
+
+    if (body.estado === "Cancelada" && cita.eventoGoogleId && googleConfigurado()) {
+      try {
+        await eliminarEventoCita(cita.eventoGoogleId);
+        setCitaEventoGoogle(cita.id, null);
+        cita.eventoGoogleId = null;
+      } catch (syncError) {
+        console.error("No se pudo eliminar el evento de Google Calendar:", syncError);
+      }
+    }
+
     return NextResponse.json(cita);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Error al actualizar la cita.";

@@ -159,7 +159,7 @@ export default function OrdenDetalleModal({
     }
   }
 
-  async function subirFoto(e: React.ChangeEvent<HTMLInputElement>) {
+  async function subirMedia(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file || !rol) return;
     e.target.value = "";
@@ -167,24 +167,19 @@ export default function OrdenDetalleModal({
     setSubiendoFoto(true);
     setError(null);
     try {
-      const url = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result as string);
-        reader.onerror = () => reject(new Error("No se pudo leer la imagen."));
-        reader.readAsDataURL(file);
-      });
+      const formData = new FormData();
+      formData.append("file", file);
 
-      const res = await fetch(`/api/ordenes/${orden.id}/fotos`, {
+      const res = await fetch(`/api/ordenes/${orden.id}/media`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url }),
+        body: formData,
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "No se pudo subir la foto.");
+      if (!res.ok) throw new Error(data.error ?? "No se pudo subir el archivo.");
       setActividad(data.actividad);
       onActualizada({ ...detalle, orden: data });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "No se pudo subir la foto.");
+      setError(err instanceof Error ? err.message : "No se pudo subir el archivo.");
     } finally {
       setSubiendoFoto(false);
     }
@@ -528,31 +523,55 @@ export default function OrdenDetalleModal({
           )}
         </div>
 
-        {/* --- Fotos --- */}
+        {/* --- Fotos y Videos --- */}
         <div className="mt-6 border-t border-ink/10 pt-5">
-          <h3 className="font-display text-lg tracking-wide text-ink/80">Fotos de Evidencia</h3>
+          <h3 className="font-display text-lg tracking-wide text-ink/80">Fotos y Videos de Evidencia</h3>
           <div className="mt-3 flex flex-wrap gap-2">
-            {orden.fotos.length === 0 && (
-              <p className="text-sm text-ink/40">Sin fotos todavía.</p>
+            {orden.fotos.length === 0 && orden.media.length === 0 && (
+              <p className="text-sm text-ink/40">Sin evidencia todavía.</p>
             )}
             {orden.fotos.map((foto, i) => (
               // eslint-disable-next-line @next/next/no-img-element
               <img
-                key={i}
+                key={`legacy-${i}`}
                 src={foto}
                 alt={`Evidencia ${i + 1}`}
                 className="h-20 w-20 rounded-md border border-ink/10 object-cover"
               />
             ))}
+            {orden.media.map((item) =>
+              item.tipo === "video" ? (
+                <a
+                  key={item.id}
+                  href={item.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex h-20 w-20 flex-col items-center justify-center gap-1 rounded-md border border-ink/10 bg-bg text-ink/60 hover:border-safety hover:text-ink"
+                  title={item.nombre}
+                >
+                  <span className="text-2xl">▶</span>
+                  <span className="text-[10px]">Video</span>
+                </a>
+              ) : (
+                <a key={item.id} href={item.url} target="_blank" rel="noopener noreferrer">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={item.thumbnailUrl ?? item.url}
+                    alt={item.nombre}
+                    className="h-20 w-20 rounded-md border border-ink/10 object-cover"
+                  />
+                </a>
+              )
+            )}
           </div>
 
           {puedeFotografiar && (
             <label className="mt-3 inline-block cursor-pointer rounded-md border border-dashed border-ink/20 px-4 py-2 text-xs font-medium text-ink/60 hover:border-safety hover:text-ink">
-              {subiendoFoto ? "Subiendo..." : "+ Agregar Foto"}
+              {subiendoFoto ? "Subiendo..." : "+ Agregar Foto o Video"}
               <input
                 type="file"
-                accept="image/*"
-                onChange={subirFoto}
+                accept="image/*,video/*"
+                onChange={subirMedia}
                 disabled={subiendoFoto}
                 className="hidden"
               />

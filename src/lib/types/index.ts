@@ -64,6 +64,9 @@ export interface Cita {
   hora: string; // "HH:mm"
   motivo: string;
   estado: EstadoCita;
+  /** Google Calendar event id on the taller's own calendar, once synced. Null
+   *  if Google Calendar isn't configured or the sync call failed. */
+  eventoGoogleId: string | null;
 }
 
 // --- Ordenes_Trabajo --------------------------------------------------------
@@ -96,6 +99,25 @@ export interface ActividadOrden {
   hora: string; // "HH:mm"
 }
 
+export type TipoMedia = "foto" | "video";
+
+/**
+ * One evidence photo/video stored in Google Drive (see src/lib/google/drive.ts).
+ * Only the Drive file id + resolved links are kept in SQLite — the actual
+ * bytes live in Drive, under a folder named after the vehicle's plate, so
+ * this record is really just a pointer, not the media itself.
+ */
+export interface MediaOrden {
+  id: number;
+  tipo: TipoMedia;
+  driveFileId: string;
+  url: string; // Drive webViewLink
+  thumbnailUrl: string | null;
+  mimeType: string;
+  nombre: string;
+  fecha: string; // ISO date
+}
+
 export interface OrdenTrabajo {
   id: string;
   citaId: string | null;
@@ -111,7 +133,8 @@ export interface OrdenTrabajo {
   horaSalida: string | null; // "HH:mm"
   notas: NotaOrden[];
   actividad: ActividadOrden[];
-  fotos: string[]; // Google Drive preview URLs (mocked as placeholder strings for now)
+  fotos: string[]; // legacy evidence photos stored as data: URLs, pre-Drive-integration
+  media: MediaOrden[]; // photos + videos stored in Google Drive
   fechaIngreso: string; // ISO date
   fechaEntrega: string | null; // ISO date, null until delivered
 }

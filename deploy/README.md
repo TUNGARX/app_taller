@@ -52,7 +52,10 @@ echo '/mnt/<volume>/taller-data /opt/taller-app/app/data none bind 0 0' >> /etc/
 mount /opt/taller-app/app/data
 
 # See .env.production.example — copy to /opt/taller-app/app/.env.local with a
-# freshly generated AUTH_SECRET, chmod 600.
+# freshly generated AUTH_SECRET, chmod 600. Also set GOOGLE_SERVICE_ACCOUNT_JSON
+# and GOOGLE_IMPERSONATE_EMAIL once the Google Drive/Calendar integration
+# (feature/google-drive-calendar branch) is merged — see that file's comments
+# for how to generate the service-account key.
 
 su - taller -s /bin/bash -c 'cd /opt/taller-app/app && npm ci && npm run build'
 
