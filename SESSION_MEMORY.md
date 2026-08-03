@@ -2,7 +2,7 @@
 
 This file tracks the current state of development and next-session priorities. **Instruction for Claude:** At the end of every work session, you must update this file with the accomplished goals, technical findings, and immediate next steps.
 
-## 🗓️ Last Updated: 2026-08-01 (App is LIVE in production: https://taller.automotivo.fonsfideishop.com)
+## 🗓️ Last Updated: 2026-08-03 (App is LIVE in production: https://taller.automotivo.fonsfideishop.com)
 
 ## 🚦 Overall Project Status
 - **Architecture Decision:** Unified **Next.js (TypeScript + Tailwind + App Router)** application. No separate backend — API logic lives in `src/app/api/*` Route Handlers.
@@ -231,6 +231,13 @@ Client asked what's left before going to production; that turned into a cost-eff
 
 **The app is live: https://taller.automotivo.fonsfideishop.com**
 
+## 🎯 Completed Work — Panel Kanban Board Full-Width Fix (2026-08-03)
+Client reported a visual bug: the Panel (Kanban board) looked fine on a divided/split screen, but on a full-width monitor the columns stayed narrow and wrapped into two rows instead of spreading out and using the available space — didn't happen on other dashboard pages (Agendar Cita, Personal).
+
+- [x] **Root cause confirmed in the browser** (not guessed) via `getComputedStyle` on the actual grid elements at a 1920px viewport: `src/app/(dashboard)/dashboard/page.tsx` wrapped its whole content in `mx-auto max-w-6xl` (1152px) — the same cap used on the narrower `Agendar Cita`/`Personal` pages, where a 1152px cap is invisible on a form/list layout. On the Panel page, the 8-column Kanban grid (`grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8`) was always squeezed into that same 1152px regardless of monitor width — leaving large unused margins, and (combined with Windows display-scaling reducing the effective CSS viewport width below the `xl` 1280px breakpoint) sometimes not even reaching 8 columns, causing the 2-row wrap the client saw.
+- [x] **Fix**: widened the Panel page's wrapper to `max-w-[1600px]` — only on `dashboard/page.tsx`, not the shared layout, so `Agendar Cita`/`Personal` are untouched. Verified in-browser: at 1920px the grid now renders at 1600px (184px/column) instead of 1152px (128px/column); at 1024px it still correctly falls back to 4 columns with no regression.
+- [x] Committed directly to `main` (not the `feature/google-drive-calendar` branch — unrelated, isolated fix), pushed, and deployed: `git pull && npm ci && npm run build` on the Droplet, `systemctl restart taller`, confirmed `HTTP 200` and — per the client — confirmed visually fixed on the live site.
+
 ## 🎯 Completed Work — Post-Deploy Fixes (2026-08-01)
 Client reported a bug after using the live app, plus a small UX request.
 
@@ -240,8 +247,7 @@ Client reported a bug after using the live app, plus a small UX request.
 - [x] Verified end-to-end after the fix: production build succeeds cleanly, service starts and serves `HTTP 200`, `/buscar` plate lookup works, and the `users` table read directly from the (bind-mounted) DB file confirms both the original Owner account and a second Mechanic account the client had already created through the live `/staff` page — proving data integrity held through the whole symlink→bind-mount migration.
 
 ## 📋 Next Steps (Immediate Priorities for Next Session)
-1. **Google Drive integration for evidence photos** (no longer "Sheets as DB" — that plan is superseded, see Status section above): photos are currently base64 `data:` URLs stored directly in SQLite (`orden_fotos.url`), which works but bloats the DB file as more photos accumulate — this matters more now that it's a real persistent production file, not disposable dev data. If/when Drive integration happens, it'd upload the photo and store a public preview link instead — a service-account approach (share a Drive folder with the service account, no OAuth consent flow) same as originally planned.
-2. **Google Calendar integration for citas** — per the questionnaire, appointment reminders should sync to Google Calendar (not WhatsApp/email). Same service-account approach: share the shop's calendar with the service account (works for a regular Gmail account too, no Workspace/domain-wide-delegation needed since it's calendar-sharing, not org-wide access).
+1. **Google Drive (evidence photos/videos) + Google Calendar (citas sync) integration — in progress, NOT on `main`.** Full scaffolding (service account auth, per-plate Drive folders, `orden_media` table, upload route, Calendar sync) already built on branch `feature/google-drive-calendar` — see that branch's own `SESSION_MEMORY.md` for full detail (its copy is ahead of this file's, intentionally, since it hasn't been merged). **Currently blocked**: waiting on the client to confirm whether their Google account is Workspace (admin.google.com) or personal/Google One — this determines the auth approach (service account + domain-wide delegation vs. OAuth2 + refresh token). **Standing rule: never merge that branch (or any branch) into `main` without the client's explicit approval.**
 3. **Auth fast-follow (not urgent, note for whenever it comes up):** the Owner currently manages staff exclusively through the in-app `/staff` page — no external dashboard to fall back on, which is by design for this option. If email-based password reset is ever wanted, that requires adding an SMTP integration and switching the login identifier from username to email — a real design change, not a small tweak, so don't do it casually.
 4. **Automated data backups beyond the manual CSV/ZIP export** — worth considering DigitalOcean Volume-level snapshots (separate from Droplet backups, which don't cover attached Volumes) as a scheduled safety net now that this is real production data, not disposable dev data.
 5. **WhatsApp Business Cloud API integration** for Kanban status-change notifications (e.g. `Entregado`) — still not started, per `PROJECT_CONTEXT.MD`.
