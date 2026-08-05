@@ -4,7 +4,17 @@ import { useEffect, useState } from "react";
 import { calcularTotalesCotizacion } from "@/lib/cotizacion-calc";
 import { formatColones, formatFecha } from "@/lib/format";
 import { useRole } from "@/lib/role-context";
-import type { CotizacionItem, EstadoCotizacion, OrdenConDetalle, TipoOrden } from "@/lib/types";
+import type { Cotizacion, CotizacionItem, OrdenConDetalle, TipoOrden } from "@/lib/types";
+
+/** The 4 states a Cotización's estado+pagada pair actually represents to a
+ *  human — "Pagada" and "Aprobada, pendiente de pago" are both `estado:
+ *  "Aprobada"` under the hood, differing only in `pagada`. */
+type EstadoCombinado = "Pendiente" | "Aprobada" | "Pagada" | "Rechazada";
+
+function estadoCombinadoDe(cotizacion: Cotizacion): EstadoCombinado {
+  if (cotizacion.estado !== "Aprobada") return cotizacion.estado;
+  return cotizacion.pagada ? "Pagada" : "Aprobada";
+}
 import DescargarCotizacionPdfButton from "./DescargarCotizacionPdfButton";
 
 const LINEA_VACIA: CotizacionItem = {
@@ -44,7 +54,6 @@ export default function OrdenDetalleModal({
   const [enviandoCotizacion, setEnviandoCotizacion] = useState(false);
   const [enviandoItems, setEnviandoItems] = useState(false);
   const [enviandoDecision, setEnviandoDecision] = useState(false);
-  const [enviandoPago, setEnviandoPago] = useState(false);
   const [mostrarRechazo, setMostrarRechazo] = useState(false);
   const [seguimientoChecked, setSeguimientoChecked] = useState(true);
   const [subiendoFoto, setSubiendoFoto] = useState(false);
@@ -140,20 +149,30 @@ export default function OrdenDetalleModal({
     }
   }
 
-  async function decidirCotizacion(estado: EstadoCotizacion, seguimiento = false) {
+  /** Low-level PATCH shared by every Cotización status/pago transition —
+   *  returns the freshly saved cotización so callers can chain a second
+   *  call (e.g. estado→"Aprobada" then pagada→true) off the real server
+   *  state instead of a stale local value. */
+  async function patchCotizacion(body: Record<string, unknown>): Promise<Cotizacion> {
+    if (!cotizacion) throw new Error("Sin cotización.");
+    const res = await fetch(`/api/cotizaciones/${cotizacion.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error ?? "No se pudo actualizar la cotización.");
+    setActividad(data.orden.actividad);
+    onActualizada({ ...detalle, cotizacion: data.cotizacion, orden: data.orden });
+    return data.cotizacion as Cotizacion;
+  }
+
+  async function confirmarRechazo(seguimiento: boolean) {
     if (!cotizacion || !rol) return;
     setEnviandoDecision(true);
     setError(null);
     try {
-      const res = await fetch(`/api/cotizaciones/${cotizacion.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ estado, seguimiento }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "No se pudo actualizar la cotización.");
-      setActividad(data.orden.actividad);
-      onActualizada({ ...detalle, cotizacion: data.cotizacion, orden: data.orden });
+      await patchCotizacion({ estado: "Rechazada", seguimiento });
       setMostrarRechazo(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : "No se pudo actualizar la cotización.");
@@ -162,24 +181,39 @@ export default function OrdenDetalleModal({
     }
   }
 
-  async function marcarPagada(pagada: boolean) {
+  /**
+   * A Cotización can move freely between any of its 4 real-world states —
+   * Pendiente, Aprobada (unpaid), Pagada (the final Factura), Rechazada —
+   * in either direction (e.g. undo an accidental "Pagada"), not just
+   * forward through the original linear approve→pay flow. "Pagada" is the
+   * only target needing two PATCH calls, since the server only allows
+   * `pagada: true` once `estado` is already "Aprobada".
+   */
+  async function cambiarEstadoCombinado(valor: EstadoCombinado) {
     if (!cotizacion || !rol) return;
-    setEnviandoPago(true);
+
+    if (valor === "Rechazada") {
+      setMostrarRechazo(true);
+      return;
+    }
+
+    setEnviandoDecision(true);
     setError(null);
     try {
-      const res = await fetch(`/api/cotizaciones/${cotizacion.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pagada }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "No se pudo actualizar el pago.");
-      setActividad(data.orden.actividad);
-      onActualizada({ ...detalle, cotizacion: data.cotizacion, orden: data.orden });
+      let actual = cotizacion;
+      if (valor === "Pendiente") {
+        if (actual.estado !== "Pendiente") actual = await patchCotizacion({ estado: "Pendiente" });
+      } else if (valor === "Aprobada") {
+        if (actual.estado !== "Aprobada") actual = await patchCotizacion({ estado: "Aprobada" });
+        if (actual.pagada) actual = await patchCotizacion({ pagada: false });
+      } else if (valor === "Pagada") {
+        if (actual.estado !== "Aprobada") actual = await patchCotizacion({ estado: "Aprobada" });
+        if (!actual.pagada) actual = await patchCotizacion({ pagada: true });
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "No se pudo actualizar el pago.");
+      setError(err instanceof Error ? err.message : "No se pudo actualizar la cotización.");
     } finally {
-      setEnviandoPago(false);
+      setEnviandoDecision(false);
     }
   }
 
@@ -473,47 +507,18 @@ export default function OrdenDetalleModal({
                       {cotizacion.estado === "Rechazada" && "Rechazada"}
                     </span>
 
-                    {puedeFacturar && cotizacion.estado === "Pendiente" && !mostrarRechazo && (
-                      <div className="flex gap-2">
-                        <button
-                          type="button"
-                          onClick={() => setMostrarRechazo(true)}
-                          disabled={enviandoDecision}
-                          className="rounded-md border border-ink/15 px-3 py-1.5 text-xs font-medium text-ink/70 transition-colors hover:bg-ink/5 disabled:opacity-50"
-                        >
-                          Rechazar
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => decidirCotizacion("Aprobada")}
-                          disabled={enviandoDecision}
-                          className="rounded-md bg-steel px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-safety disabled:opacity-50"
-                        >
-                          Aprobar
-                        </button>
-                      </div>
-                    )}
-
-                    {puedeFacturar && cotizacion.estado === "Aprobada" && (
-                      <button
-                        type="button"
-                        onClick={() => marcarPagada(!cotizacion.pagada)}
-                        disabled={enviandoPago}
-                        className="rounded-md bg-steel px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-safety disabled:opacity-50"
-                      >
-                        {cotizacion.pagada ? "Revertir Pago" : "Marcar como Pagada"}
-                      </button>
-                    )}
-
-                    {puedeFacturar && cotizacion.estado === "Rechazada" && (
-                      <button
-                        type="button"
-                        onClick={() => decidirCotizacion("Pendiente")}
+                    {puedeFacturar && !mostrarRechazo && (
+                      <select
+                        value={estadoCombinadoDe(cotizacion)}
+                        onChange={(e) => cambiarEstadoCombinado(e.target.value as EstadoCombinado)}
                         disabled={enviandoDecision}
-                        className="rounded-md border border-ink/15 px-3 py-1.5 text-xs font-medium text-ink/70 transition-colors hover:bg-ink/5 disabled:opacity-50"
+                        className="rounded-md border border-ink/15 bg-paper px-3 py-1.5 text-xs font-medium text-ink focus:border-safety focus:outline-none disabled:opacity-50"
                       >
-                        Reconsiderar
-                      </button>
+                        <option value="Pendiente">Pendiente de decisión</option>
+                        <option value="Aprobada">Aprobada, pendiente de pago</option>
+                        <option value="Pagada">Pagada (Factura)</option>
+                        <option value="Rechazada">Rechazada</option>
+                      </select>
                     )}
                   </div>
 
@@ -537,7 +542,7 @@ export default function OrdenDetalleModal({
                         </button>
                         <button
                           type="button"
-                          onClick={() => decidirCotizacion("Rechazada", seguimientoChecked)}
+                          onClick={() => confirmarRechazo(seguimientoChecked)}
                           disabled={enviandoDecision}
                           className="rounded-md bg-stage-repuestos px-3 py-1.5 text-xs font-medium text-white hover:opacity-90 disabled:opacity-50"
                         >

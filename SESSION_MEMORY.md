@@ -231,6 +231,17 @@ Client asked what's left before going to production; that turned into a cost-eff
 
 **The app is live: https://taller.automotivo.fonsfideishop.com**
 
+## 🎯 Completed Work — Flexible Cotización Status Dropdown (2026-08-05)
+Client asked two follow-up questions on the previous batch before agreeing to deploy: (1) does "Cambiar" (the role-switch button in `StaffNav`) actually log the user out? — **confirmed yes**, it calls `signOut()` via `role-context.tsx`'s `cerrarSesion`, a real Auth.js session termination, not just a client-side role swap. No code change needed. (2) The Aprobar/Rechazar/Marcar-Pagada/Reconsiderar buttons were too rigid (linear flow only) — asked for a dropdown allowing free movement between any state, e.g. undo an accidental "Pagada" straight back to "Pendiente" or "Aprobada".
+
+- [x] **`OrdenDetalleModal.tsx`**: introduced `EstadoCombinado` ("Pendiente" | "Aprobada" | "Pagada" | "Rechazada") — the human-meaningful 4 states, since "Aprobada" and "Pagada" are both `estado: "Aprobada"` under the hood, differing only in `pagada`. Replaced the 4 separate conditionally-rendered buttons with a single always-visible `<select>` bound to `estadoCombinadoDe(cotizacion)`.
+- [x] **`cambiarEstadoCombinado(valor)`** computes the minimal PATCH calls needed to reach any target state from any current state (most transitions are 1 call; only reaching "Pagada" from a non-"Aprobada" state needs 2 sequential calls — set `estado: "Aprobada"` first, then `pagada: true` — since the server guards `pagada: true` behind already being approved). Selecting "Rechazada" still opens the existing seguimiento-reminder confirm box rather than applying instantly, unchanged from before.
+- [x] **Reverting "Pagada" → anything else is a single call**: `setCotizacionEstado` in `negocio.ts` already force-clears `pagada` whenever `estado` moves away from `"Aprobada"` (pre-existing behavior, just newly exposed via the dropdown) — confirmed no server-side change was needed for un-doing a payment by mistake.
+- [x] **The "locked once Factura" rule for editable items falls out for free**: since `puedeEditarItems = puedeFacturar && !esFactura` was already derived reactively from `cotizacion`, reverting "Pagada" back to any other state via the dropdown immediately re-enables item editing with zero extra code.
+- [x] Removed the now-dead `marcarPagada`/old `decidirCotizacion` button-click paths and the unused `enviandoPago` state; kept a renamed `confirmarRechazo` for the one remaining seguimiento-confirm button.
+- [x] **Verified in the browser**: jumped a card directly from "Aprobada, pendiente de pago" → "Pagada (Factura)" (title switched to "Factura", items locked, PDF relabeled) → then directly back to "Pendiente de decisión" in one dropdown action (single PATCH, items re-editable, PDF still available, activity log shows `Marcó la cotización como "Pendiente"`).
+- [x] `npx tsc --noEmit` and `npm run lint` both clean.
+
 ## 🎯 Completed Work — Login Outage Fix (2026-08-05)
 Client reported nobody could log in — an active production outage.
 
