@@ -1,6 +1,17 @@
 "use client";
 
 import { useState } from "react";
+import {
+  DndContext,
+  DragOverlay,
+  PointerSensor,
+  TouchSensor,
+  useDraggable,
+  useDroppable,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
 import { ORDEN_ESTADOS, type EstadoKanban, type OrdenConDetalle, type Vehiculo } from "@/lib/types";
 import { horasDesde } from "@/lib/format";
 import { useRole } from "@/lib/role-context";
@@ -24,6 +35,57 @@ function estaArchivada(detalle: OrdenConDetalle): boolean {
   return horasDesde(orden.fechaEntrega, orden.horaSalida) > OCULTAR_ENTREGADO_HORAS;
 }
 
+/** A Kanban column as a drop target — highlights while a card is dragged
+ *  over it. The Anterior/Siguiente buttons on each card still work exactly
+ *  as before; drag-and-drop is an additional, faster way to move a card,
+ *  not a replacement (touch drag is more error-prone, so the buttons stay
+ *  as the reliable fallback on phones). */
+function ColumnaSoltable({
+  estado,
+  children,
+}: {
+  estado: EstadoKanban;
+  children: React.ReactNode;
+}) {
+  const { setNodeRef, isOver } = useDroppable({ id: estado });
+  return (
+    <div
+      ref={setNodeRef}
+      className={`flex min-w-0 flex-col rounded-lg transition-colors ${
+        isOver ? "bg-safety/5 ring-2 ring-safety/30" : ""
+      }`}
+    >
+      {children}
+    </div>
+  );
+}
+
+/** Wraps a card to make it draggable between columns. Uses a distance-based
+ *  activation for mouse (so a plain click still reaches the card's own
+ *  buttons) and a delay-based one for touch (so it doesn't hijack scrolling
+ *  a column on a phone) — configured on the sensors in KanbanBoard. */
+function TarjetaArrastrable({
+  id,
+  disabled,
+  children,
+}: {
+  id: string;
+  disabled: boolean;
+  children: React.ReactNode;
+}) {
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id, disabled });
+  return (
+    <div
+      ref={setNodeRef}
+      {...attributes}
+      {...listeners}
+      className={disabled ? undefined : `cursor-grab touch-none active:cursor-grabbing ${isDragging ? "opacity-30" : ""}`}
+    >
+      {children}
+    </div>
+  );
+}
+
 export default function KanbanBoard({
   ordenesIniciales,
   vehiculosConCliente,
@@ -41,6 +103,16 @@ export default function KanbanBoard({
   const [detalleAbiertoId, setDetalleAbiertoId] = useState<string | null>(null);
   const [mostrarArchivadas, setMostrarArchivadas] = useState(false);
   const [busqueda, setBusqueda] = useState("");
+  const [arrastrandoId, setArrastrandoId] = useState<string | null>(null);
+
+  // distance: a plain click/tap on a card's own buttons never travels 8px,
+  // so it still reaches them normally — only a deliberate drag activates.
+  // The touch delay additionally gives a quick scroll swipe time to happen
+  // before a press is treated as a drag, instead of hijacking it instantly.
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 8 } })
+  );
 
   const terminoBusqueda = busqueda.trim().toLowerCase();
   const hayBusqueda = terminoBusqueda.length > 0;
@@ -82,7 +154,18 @@ export default function KanbanBoard({
     actualizarEstado(ordenId, ORDEN_ESTADOS[nuevoIndice]);
   }
 
+  function alSoltar(event: DragEndEvent) {
+    setArrastrandoId(null);
+    const { active, over } = event;
+    if (!over) return;
+    const nuevoEstado = over.id as EstadoKanban;
+    const detalle = ordenes.find((d) => d.orden.id === active.id);
+    if (!detalle || detalle.orden.estadoKanban === nuevoEstado) return;
+    actualizarEstado(active.id as string, nuevoEstado);
+  }
+
   const detalleAbierto = ordenes.find((d) => d.orden.id === detalleAbiertoId);
+  const detalleArrastrando = arrastrandoId ? ordenes.find((d) => d.orden.id === arrastrandoId) : undefined;
 
   return (
     <div>
@@ -147,68 +230,93 @@ export default function KanbanBoard({
         </p>
       )}
 
-      <div className="grid grid-cols-1 gap-4 overflow-x-auto sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8">
-        {ORDEN_ESTADOS.map((estado) => {
-          const columnaCompleta = ordenes.filter((d) => d.orden.estadoKanban === estado);
-          const esEntregado = estado === "Entregado";
-          const archivadas = esEntregado ? columnaCompleta.filter(estaArchivada) : [];
-          // While searching, matching archived cards surface even if the
-          // "mostrar archivadas" toggle is off — no need to reveal the whole
-          // pile of old deliveries just to find one plate.
-          const columna =
-            esEntregado && !mostrarArchivadas
-              ? columnaCompleta.filter((d) => !estaArchivada(d) || (hayBusqueda && coincide(d)))
-              : columnaCompleta;
+      <DndContext
+        sensors={sensors}
+        onDragStart={(e) => setArrastrandoId(e.active.id as string)}
+        onDragEnd={alSoltar}
+        onDragCancel={() => setArrastrandoId(null)}
+      >
+        <div className="grid grid-cols-1 gap-4 overflow-x-auto sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8">
+          {ORDEN_ESTADOS.map((estado) => {
+            const columnaCompleta = ordenes.filter((d) => d.orden.estadoKanban === estado);
+            const esEntregado = estado === "Entregado";
+            const archivadas = esEntregado ? columnaCompleta.filter(estaArchivada) : [];
+            // While searching, matching archived cards surface even if the
+            // "mostrar archivadas" toggle is off — no need to reveal the whole
+            // pile of old deliveries just to find one plate.
+            const columna =
+              esEntregado && !mostrarArchivadas
+                ? columnaCompleta.filter((d) => !estaArchivada(d) || (hayBusqueda && coincide(d)))
+                : columnaCompleta;
 
-          return (
-            <div key={estado} className="flex min-w-0 flex-col">
-              <div className="mb-3 flex items-baseline justify-between border-b-2 border-ink/10 pb-2">
-                <h2 className="font-display text-xl tracking-wide text-ink">{estado}</h2>
-                <span className="font-mono text-xs text-ink/40">{columna.length}</span>
-              </div>
+            return (
+              <ColumnaSoltable key={estado} estado={estado}>
+                <div className="mb-3 flex items-baseline justify-between border-b-2 border-ink/10 pb-2">
+                  <h2 className="font-display text-xl tracking-wide text-ink">{estado}</h2>
+                  <span className="font-mono text-xs text-ink/40">{columna.length}</span>
+                </div>
 
-              {esEntregado && archivadas.length > 0 && (
-                <button
-                  type="button"
-                  onClick={() => setMostrarArchivadas((prev) => !prev)}
-                  className="mb-3 rounded-md border border-dashed border-ink/20 px-2 py-1.5 text-center text-[11px] font-medium text-ink/50 transition-colors hover:border-safety hover:text-ink"
-                >
-                  {mostrarArchivadas
-                    ? "Ocultar entregas antiguas"
-                    : `+${archivadas.length} entregadas hace +72h — Mostrar`}
-                </button>
-              )}
-
-              <div className="flex flex-col gap-3">
-                {columna.length === 0 && (
-                  <p className="rounded-md border border-dashed border-ink/15 px-3 py-6 text-center text-xs text-ink/30">
-                    Sin órdenes
-                  </p>
+                {esEntregado && archivadas.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setMostrarArchivadas((prev) => !prev)}
+                    className="mb-3 rounded-md border border-dashed border-ink/20 px-2 py-1.5 text-center text-[11px] font-medium text-ink/50 transition-colors hover:border-safety hover:text-ink"
+                  >
+                    {mostrarArchivadas
+                      ? "Ocultar entregas antiguas"
+                      : `+${archivadas.length} entregadas hace +72h — Mostrar`}
+                  </button>
                 )}
-                {columna.map((detalle) => (
-                  <OrdenCard
-                    key={detalle.orden.id}
-                    detalle={detalle}
-                    moviendo={moviendoId === detalle.orden.id}
-                    puedeRetroceder={ORDEN_ESTADOS.indexOf(estado) > 0}
-                    puedeAvanzar={ORDEN_ESTADOS.indexOf(estado) < ORDEN_ESTADOS.length - 1}
-                    onMover={(direccion) => mover(detalle.orden.id, direccion)}
-                    onVerDetalle={() => setDetalleAbiertoId(detalle.orden.id)}
-                    archivada={estaArchivada(detalle)}
-                    resaltada={hayBusqueda && coincide(detalle)}
-                    atenuada={hayBusqueda && !coincide(detalle)}
-                    onVolverAIngresado={
-                      estaArchivada(detalle)
-                        ? () => actualizarEstado(detalle.orden.id, "Ingresado")
-                        : undefined
-                    }
-                  />
-                ))}
-              </div>
+
+                <div className="flex flex-col gap-3">
+                  {columna.length === 0 && (
+                    <p className="rounded-md border border-dashed border-ink/15 px-3 py-6 text-center text-xs text-ink/30">
+                      Sin órdenes
+                    </p>
+                  )}
+                  {columna.map((detalle) => (
+                    <TarjetaArrastrable
+                      key={detalle.orden.id}
+                      id={detalle.orden.id}
+                      disabled={moviendoId === detalle.orden.id}
+                    >
+                      <OrdenCard
+                        detalle={detalle}
+                        moviendo={moviendoId === detalle.orden.id}
+                        puedeRetroceder={ORDEN_ESTADOS.indexOf(estado) > 0}
+                        puedeAvanzar={ORDEN_ESTADOS.indexOf(estado) < ORDEN_ESTADOS.length - 1}
+                        onMover={(direccion) => mover(detalle.orden.id, direccion)}
+                        onVerDetalle={() => setDetalleAbiertoId(detalle.orden.id)}
+                        archivada={estaArchivada(detalle)}
+                        resaltada={hayBusqueda && coincide(detalle)}
+                        atenuada={hayBusqueda && !coincide(detalle)}
+                        onVolverAIngresado={
+                          estaArchivada(detalle)
+                            ? () => actualizarEstado(detalle.orden.id, "Ingresado")
+                            : undefined
+                        }
+                      />
+                    </TarjetaArrastrable>
+                  ))}
+                </div>
+              </ColumnaSoltable>
+            );
+          })}
+        </div>
+
+        <DragOverlay>
+          {detalleArrastrando ? (
+            <div className="w-full max-w-[220px] cursor-grabbing rounded-lg border border-safety bg-paper p-3 shadow-lg">
+              <span className="rounded border border-steel-light bg-steel px-2 py-0.5 font-mono text-xs font-semibold tracking-wider text-white">
+                {detalleArrastrando.vehiculo.placa}
+              </span>
+              <p className="mt-1 text-sm font-semibold text-ink">
+                {detalleArrastrando.vehiculo.marca} {detalleArrastrando.vehiculo.modelo}
+              </p>
             </div>
-          );
-        })}
-      </div>
+          ) : null}
+        </DragOverlay>
+      </DndContext>
     </div>
   );
 }

@@ -231,6 +231,20 @@ Client asked what's left before going to production; that turned into a cost-eff
 
 **The app is live: https://taller.automotivo.fonsfideishop.com**
 
+## ⚠️ Deploy Process Note — Don't Forget `systemctl restart taller`
+After the "Flexible Cotización Status Dropdown" batch below, a build was run on the Droplet (`npm ci && npm run build`) but the systemd service was **not restarted** — `next start` loads the compiled server into memory at process start, so overwriting `.next/` on disk has zero effect on the already-running process. Production kept silently serving the pre-batch build for ~12 hours until the client reported the new features "weren't there" on existing cards, which is exactly what a stale-process symptom looks like. **Every deploy must end in `systemctl restart taller`, not just `npm run build`** — verify with `systemctl status taller` (check the "Active since" timestamp) and/or curl a route that only exists in the new code (e.g. a new API path) before telling the client it's live.
+
+## 🎯 Completed Work — Kanban Drag-and-Drop (2026-08-05)
+Client asked for drag-and-drop to move cards between columns, instead of only the Anterior/Siguiente buttons. Flagged mobile explicitly (mechanics use phones) since touch drag-and-drop is more error-prone than desktop mouse drag — client chose: drag-and-drop on both desktop and mobile, **but keep the buttons everywhere** as the reliable fallback.
+
+- [x] Installed `@dnd-kit/core` + `@dnd-kit/utilities` (actively maintained, good touch support, no dependency bloat).
+- [x] **`KanbanBoard.tsx`**: wrapped the board in `<DndContext>` with two sensors — `PointerSensor` with an 8px distance activation constraint (so a plain click on a card's own buttons — Ver detalle, Anterior, Siguiente — never triggers a drag, only sustained pointer movement does) and `TouchSensor` with a 200ms delay + 8px tolerance (so a quick scroll swipe on a phone isn't hijacked as a drag attempt).
+- [x] Each column is now a drop target (`ColumnaSoltable`, `useDroppable`, highlights with a safety-colored ring while a card is dragged over it); each card is wrapped in `TarjetaArrastrable` (`useDraggable`) — disabled only while that specific card's own move request is already in flight (`moviendoId`), to avoid a second drag firing a concurrent PATCH.
+- [x] `onDragEnd` computes the target estado from the column dropped onto and calls the **exact same** `actualizarEstado()` used by the buttons — no new mutation path, so server-side validation/activity-logging is identical either way.
+- [x] Added a `DragOverlay` showing a small floating placa+marca/modelo card while dragging, for visual feedback.
+- [x] **Verification note**: this sandboxed browser tool can't take screenshots (pane doesn't composite) or use coordinate-based mouse drag here, so a real drag gesture was verified by dispatching a scripted sequence of native `PointerEvent`s (`pointerdown` → several `pointermove` steps → `pointerup`) directly at the draggable element via `javascript_tool`, then confirming via `read_network_requests` that a real `PATCH /api/ordenes/[id]` fired and the card re-rendered in the target column. Also confirmed the Anterior/Siguiente buttons still work nested inside the new draggable wrapper, and no horizontal overflow at 375px mobile width.
+- [x] `npx tsc --noEmit` and `npm run lint` both clean.
+
 ## 🎯 Completed Work — Flexible Cotización Status Dropdown (2026-08-05)
 Client asked two follow-up questions on the previous batch before agreeing to deploy: (1) does "Cambiar" (the role-switch button in `StaffNav`) actually log the user out? — **confirmed yes**, it calls `signOut()` via `role-context.tsx`'s `cerrarSesion`, a real Auth.js session termination, not just a client-side role swap. No code change needed. (2) The Aprobar/Rechazar/Marcar-Pagada/Reconsiderar buttons were too rigid (linear flow only) — asked for a dropdown allowing free movement between any state, e.g. undo an accidental "Pagada" straight back to "Pendiente" or "Aprobada".
 
