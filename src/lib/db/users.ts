@@ -73,13 +73,19 @@ export function crearUsuario(input: {
   const passwordHash = bcrypt.hashSync(input.password, 10);
   const ahora = new Date().toISOString();
 
+  // Normalized the same way getUsuarioPorNombreUsuario compares — stores a
+  // consistent form so a later login attempt (typed on a different
+  // keyboard/device) still matches byte-for-byte where it matters (the
+  // UNIQUE constraint), even though the actual lookup is itself tolerant.
+  const usuarioNormalizado = input.usuario.trim().normalize("NFC");
+
   const resultado = db
     .prepare(
       `INSERT INTO users (usuario, passwordHash, nombre, rol, debeCambiarPassword, passwordChangedAt, createdAt)
        VALUES (@usuario, @passwordHash, @nombre, @rol, @debeCambiarPassword, @ahora, @ahora)`
     )
     .run({
-      usuario: input.usuario,
+      usuario: usuarioNormalizado,
       passwordHash,
       nombre: input.nombre,
       rol: input.rol,
@@ -90,10 +96,17 @@ export function crearUsuario(input: {
   return getUsuarioPublicoPorId(Number(resultado.lastInsertRowid))!;
 }
 
+/** Case- and Unicode-normalization-insensitive: a plain SQL `= ?` match is
+ *  byte-for-byte, which silently fails when the same-looking username was
+ *  typed on a different keyboard/device than the one used to create the
+ *  account — e.g. an accented character stored in NFD form ("o" + combining
+ *  accent) never matches the same character typed as a single NFC codepoint,
+ *  even though both render identically. Staff accounts are few enough
+ *  (a handful per shop) that comparing in JS instead of SQL costs nothing. */
 export function getUsuarioPorNombreUsuario(usuario: string): Usuario | undefined {
-  return db
-    .prepare("SELECT * FROM users WHERE usuario = ?")
-    .get(usuario) as Usuario | undefined;
+  const buscado = usuario.trim().normalize("NFC").toLowerCase();
+  const rows = db.prepare("SELECT * FROM users").all() as Usuario[];
+  return rows.find((u) => u.usuario.normalize("NFC").toLowerCase() === buscado);
 }
 
 function aPublico(user: Usuario): UsuarioPublico {
