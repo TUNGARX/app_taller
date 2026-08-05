@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { signOut } from "next-auth/react";
+import PasswordInput from "@/components/PasswordInput";
 
 export default function CambiarPasswordPage() {
   const [passwordActual, setPasswordActual] = useState("");
@@ -46,28 +47,25 @@ export default function CambiarPasswordPage() {
         Por seguridad, debe establecer una nueva contraseña antes de continuar.
       </p>
       <form onSubmit={enviar} className="mt-6 space-y-3">
-        <input
-          type="password"
+        <PasswordInput
           value={passwordActual}
-          onChange={(e) => setPasswordActual(e.target.value)}
+          onChange={setPasswordActual}
           placeholder="Contraseña actual"
           autoComplete="current-password"
           required
           className="w-full rounded-lg border border-ink/15 bg-paper px-4 py-2.5 text-sm placeholder:text-ink/50 focus:border-safety focus:outline-none"
         />
-        <input
-          type="password"
+        <PasswordInput
           value={nuevaPassword}
-          onChange={(e) => setNuevaPassword(e.target.value)}
+          onChange={setNuevaPassword}
           placeholder="Nueva contraseña (mínimo 8 caracteres)"
           autoComplete="new-password"
           required
           className="w-full rounded-lg border border-ink/15 bg-paper px-4 py-2.5 text-sm placeholder:text-ink/50 focus:border-safety focus:outline-none"
         />
-        <input
-          type="password"
+        <PasswordInput
           value={confirmar}
-          onChange={(e) => setConfirmar(e.target.value)}
+          onChange={setConfirmar}
           placeholder="Confirmar nueva contraseña"
           autoComplete="new-password"
           required

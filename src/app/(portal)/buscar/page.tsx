@@ -126,7 +126,7 @@ export default function BuscarPage() {
                 </p>
               )}
 
-              {ordenActual?.cotizacion?.estado === "Aprobada" && ordenActual.cotizacion.pagada && (
+              {ordenActual?.cotizacion && (
                 <div className="mt-3">
                   <DescargarCotizacionPdfButton
                     cotizacion={ordenActual.cotizacion}
@@ -182,7 +182,7 @@ export default function BuscarPage() {
                         )}
                       </div>
 
-                      {cotizacion?.estado === "Aprobada" && cotizacion.pagada && (
+                      {cotizacion && (
                         <div className="mt-2">
                           <DescargarCotizacionPdfButton
                             cotizacion={cotizacion}

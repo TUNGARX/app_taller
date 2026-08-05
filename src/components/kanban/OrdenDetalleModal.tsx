@@ -38,8 +38,11 @@ export default function OrdenDetalleModal({
   const { orden, vehiculo, cliente, cotizacion } = detalle;
   const esFactura = cotizacion?.estado === "Aprobada" && cotizacion?.pagada;
 
-  const [items, setItems] = useState<CotizacionItem[]>([{ ...LINEA_VACIA }]);
+  const [items, setItems] = useState<CotizacionItem[]>(
+    cotizacion && cotizacion.items.length > 0 ? cotizacion.items : [{ ...LINEA_VACIA }]
+  );
   const [enviandoCotizacion, setEnviandoCotizacion] = useState(false);
+  const [enviandoItems, setEnviandoItems] = useState(false);
   const [enviandoDecision, setEnviandoDecision] = useState(false);
   const [enviandoPago, setEnviandoPago] = useState(false);
   const [mostrarRechazo, setMostrarRechazo] = useState(false);
@@ -113,6 +116,27 @@ export default function OrdenDetalleModal({
       setError(err instanceof Error ? err.message : "No se pudo crear la cotización.");
     } finally {
       setEnviandoCotizacion(false);
+    }
+  }
+
+  async function guardarItems() {
+    if (!cotizacion || !rol) return;
+    setEnviandoItems(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/cotizaciones/${cotizacion.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ items }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "No se pudieron guardar los ítems.");
+      setActividad(data.orden.actividad);
+      onActualizada({ ...detalle, cotizacion: data.cotizacion, orden: data.orden });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "No se pudieron guardar los ítems.");
+    } finally {
+      setEnviandoItems(false);
     }
   }
 
@@ -292,46 +316,145 @@ export default function OrdenDetalleModal({
           {cotizacion ? (
             (() => {
               const t = calcularTotalesCotizacion(cotizacion.items);
+              // Line items stay editable at any Kanban stage until the
+              // document becomes the final, paid Factura — matching
+              // actualizarItemsCotizacion's own guard server-side. Mechanics
+              // never see this form regardless (puedeFacturar already gates
+              // that), same as the original creation form.
+              const puedeEditarItems = puedeFacturar && !esFactura;
+              const totalesEdicion = calcularTotalesCotizacion(items);
+
               return (
                 <div className="mt-3">
-                  <ul className="space-y-1 text-sm text-ink/70">
-                    {t.lineas.map((linea, i) => (
-                      <li key={i} className="flex justify-between">
-                        <span>
-                          {linea.item.cantidad}× {linea.item.descripcion}{" "}
-                          <span className="text-[10px] text-ink/40">({linea.item.tipo})</span>
-                        </span>
-                        {puedeVerPrecios && (
-                          <span className="font-mono">{formatColones(linea.subtotalNeto)}</span>
-                        )}
-                      </li>
-                    ))}
-                  </ul>
+                  {puedeEditarItems ? (
+                    <div className="space-y-2">
+                      {items.map((item, i) => (
+                        <div
+                          key={i}
+                          className="grid grid-cols-2 gap-2 border-b border-ink/10 pb-3 sm:grid-cols-[1fr_7rem_4rem_6rem_1.5rem] sm:items-center sm:border-0 sm:pb-0"
+                        >
+                          <input
+                            required
+                            placeholder="Descripción"
+                            value={item.descripcion}
+                            onChange={(e) => actualizarLinea(i, "descripcion", e.target.value)}
+                            className={`${inputClass} col-span-2 sm:col-span-1`}
+                          />
+                          <select
+                            value={item.tipo}
+                            onChange={(e) => actualizarLinea(i, "tipo", e.target.value)}
+                            className={inputClass}
+                          >
+                            <option value="Repuesto">Repuesto</option>
+                            <option value="Mano de Obra">Mano de Obra</option>
+                          </select>
+                          <input
+                            required
+                            type="number"
+                            min={1}
+                            placeholder="Cant."
+                            value={item.cantidad}
+                            onChange={(e) => actualizarLinea(i, "cantidad", e.target.value)}
+                            className={inputClass}
+                          />
+                          <input
+                            required
+                            type="number"
+                            min={0}
+                            placeholder="₡ neto/u"
+                            value={item.precioUnitario || ""}
+                            onChange={(e) => actualizarLinea(i, "precioUnitario", e.target.value)}
+                            className={inputClass}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => quitarLinea(i)}
+                            disabled={items.length === 1}
+                            title="Quitar línea"
+                            className="justify-self-end text-ink/30 hover:text-stage-repuestos disabled:opacity-0 sm:justify-self-auto"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      ))}
+                      <button
+                        type="button"
+                        onClick={() => setItems((prev) => [...prev, { ...LINEA_VACIA }])}
+                        className="text-xs font-medium text-ink/50 hover:text-ink"
+                      >
+                        + Agregar línea
+                      </button>
 
-                  {puedeVerPrecios && (
+                      {puedeVerPrecios && (
+                        <div className="space-y-1 border-t border-ink/10 pt-2 text-xs text-ink/60">
+                          <div className="flex justify-between">
+                            <span>Total Neto</span>
+                            <span className="font-mono">{formatColones(totalesEdicion.subtotalNeto)}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>IVA (13%)</span>
+                            <span className="font-mono">{formatColones(totalesEdicion.iva)}</span>
+                          </div>
+                        </div>
+                      )}
+                      <div className="flex items-center justify-between pt-1">
+                        {puedeVerPrecios && (
+                          <span className="text-sm font-medium">
+                            Total: {formatColones(totalesEdicion.total)}
+                          </span>
+                        )}
+                        <button
+                          type="button"
+                          onClick={guardarItems}
+                          disabled={enviandoItems}
+                          className="ml-auto rounded-md bg-safety px-4 py-1.5 text-sm font-medium text-white transition-colors hover:bg-safety-dark disabled:opacity-50"
+                        >
+                          {enviandoItems ? "Guardando..." : "Guardar cambios"}
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
                     <>
-                      <div className="mt-2 space-y-1 border-t border-ink/10 pt-2 text-xs text-ink/60">
-                        <div className="flex justify-between">
-                          <span>Total mano de obra</span>
-                          <span className="font-mono">{formatColones(t.totalManoDeObra)}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>Total repuestos</span>
-                          <span className="font-mono">{formatColones(t.totalRepuestos)}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>Total Neto</span>
-                          <span className="font-mono">{formatColones(t.subtotalNeto)}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>Total IVA (13%)</span>
-                          <span className="font-mono">{formatColones(t.iva)}</span>
-                        </div>
-                      </div>
-                      <div className="mt-1 flex items-center justify-between font-medium">
-                        <span>Total</span>
-                        <span className="font-mono">{formatColones(cotizacion.total)}</span>
-                      </div>
+                      <ul className="space-y-1 text-sm text-ink/70">
+                        {t.lineas.map((linea, i) => (
+                          <li key={i} className="flex justify-between">
+                            <span>
+                              {linea.item.cantidad}× {linea.item.descripcion}{" "}
+                              <span className="text-[10px] text-ink/40">({linea.item.tipo})</span>
+                            </span>
+                            {puedeVerPrecios && (
+                              <span className="font-mono">{formatColones(linea.subtotalNeto)}</span>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+
+                      {puedeVerPrecios && (
+                        <>
+                          <div className="mt-2 space-y-1 border-t border-ink/10 pt-2 text-xs text-ink/60">
+                            <div className="flex justify-between">
+                              <span>Total mano de obra</span>
+                              <span className="font-mono">{formatColones(t.totalManoDeObra)}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Total repuestos</span>
+                              <span className="font-mono">{formatColones(t.totalRepuestos)}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Total Neto</span>
+                              <span className="font-mono">{formatColones(t.subtotalNeto)}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Total IVA (13%)</span>
+                              <span className="font-mono">{formatColones(t.iva)}</span>
+                            </div>
+                          </div>
+                          <div className="mt-1 flex items-center justify-between font-medium">
+                            <span>Total</span>
+                            <span className="font-mono">{formatColones(cotizacion.total)}</span>
+                          </div>
+                        </>
+                      )}
                     </>
                   )}
 
@@ -430,16 +553,14 @@ export default function OrdenDetalleModal({
                     </p>
                   )}
 
-                  {esFactura && (
-                    <div className="mt-3 border-t border-ink/10 pt-3">
-                      <DescargarCotizacionPdfButton
-                        cotizacion={cotizacion}
-                        orden={orden}
-                        vehiculo={vehiculo}
-                        cliente={cliente}
-                      />
-                    </div>
-                  )}
+                  <div className="mt-3 border-t border-ink/10 pt-3">
+                    <DescargarCotizacionPdfButton
+                      cotizacion={cotizacion}
+                      orden={orden}
+                      vehiculo={vehiculo}
+                      cliente={cliente}
+                    />
+                  </div>
                 </div>
               );
             })()

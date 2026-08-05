@@ -11,6 +11,12 @@ interface UsuarioListado {
   rol: Rol;
   debeCambiarPassword: 0 | 1;
   createdAt: string;
+  codigosDisponibles: number;
+}
+
+interface CodigosMostrados {
+  nombre: string;
+  codigos: string[];
 }
 
 const ROLES: Rol[] = ["Owner", "Secretary", "Mechanic"];
@@ -35,6 +41,10 @@ export default function StaffPage() {
   const [eliminarId, setEliminarId] = useState<number | null>(null);
   const [eliminando, setEliminando] = useState(false);
   const [errorEliminar, setErrorEliminar] = useState<string | null>(null);
+
+  const [codigosMostrados, setCodigosMostrados] = useState<CodigosMostrados | null>(null);
+  const [generandoCodigosId, setGenerandoCodigosId] = useState<number | null>(null);
+  const [errorCodigos, setErrorCodigos] = useState<string | null>(null);
 
   async function cargarUsuarios() {
     setCargando(true);
@@ -71,10 +81,27 @@ export default function StaffPage() {
       return;
     }
 
+    setCodigosMostrados({ nombre: data.nombre, codigos: data.codigosRecuperacion });
     setUsuario("");
     setPassword("");
     setNombre("");
     setNuevoRol("Secretary");
+    cargarUsuarios();
+  }
+
+  async function regenerarCodigos(id: number, nombre: string) {
+    setGenerandoCodigosId(id);
+    setErrorCodigos(null);
+    const res = await fetch(`/api/staff/${id}/codigos`, { method: "POST" });
+    const data = await res.json();
+    setGenerandoCodigosId(null);
+
+    if (!res.ok) {
+      setErrorCodigos(data.error ?? "No se pudieron generar los códigos.");
+      return;
+    }
+
+    setCodigosMostrados({ nombre, codigos: data.codigosRecuperacion });
     cargarUsuarios();
   }
 
@@ -184,9 +211,45 @@ export default function StaffPage() {
         </button>
       </form>
 
+      {codigosMostrados && (
+        <div className="mt-6 rounded-lg border border-amber/30 bg-amber/10 p-5">
+          <div className="flex items-start justify-between gap-2">
+            <div>
+              <h3 className="font-display text-lg tracking-wide text-ink">
+                Códigos de recuperación de {codigosMostrados.nombre}
+              </h3>
+              <p className="mt-1 text-xs text-ink/60">
+                Guárdelos en un lugar seguro y entrégueselos al empleado — no se volverán a
+                mostrar. Sirven para recuperar el acceso a esta cuenta en{" "}
+                <span className="font-mono">/recuperar</span> si olvida su contraseña. Cada
+                código funciona una sola vez.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setCodigosMostrados(null)}
+              className="shrink-0 rounded-full px-2 py-1 text-ink/40 hover:bg-ink/5 hover:text-ink"
+            >
+              ✕
+            </button>
+          </div>
+          <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+            {codigosMostrados.codigos.map((c) => (
+              <span
+                key={c}
+                className="rounded-md border border-ink/10 bg-paper px-3 py-1.5 text-center font-mono text-sm tracking-wider text-ink"
+              >
+                {c}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="mt-8">
         <h2 className="font-display text-xl tracking-wide text-ink/80">Cuentas existentes</h2>
         {avisoReinicio && <p className="mt-2 text-xs text-ink/70">{avisoReinicio}</p>}
+        {errorCodigos && <p className="mt-2 text-xs text-stage-repuestos">{errorCodigos}</p>}
 
         {cargando ? (
           <p className="mt-3 text-sm text-ink/40">Cargando...</p>
@@ -204,6 +267,9 @@ export default function StaffPage() {
                   <p className="text-xs text-ink/50">
                     {ROLE_LABEL[u.rol]}
                     {u.debeCambiarPassword ? " · debe cambiar contraseña" : ""}
+                    {" · "}
+                    {u.codigosDisponibles} código{u.codigosDisponibles === 1 ? "" : "s"} de
+                    recuperación disponible{u.codigosDisponibles === 1 ? "" : "s"}
                   </p>
                 </div>
 
@@ -270,6 +336,14 @@ export default function StaffPage() {
                       className="rounded-md border border-ink/15 px-3 py-1.5 text-xs font-medium text-ink/60 hover:border-safety hover:text-ink"
                     >
                       Reiniciar contraseña
+                    </button>
+                    <button
+                      type="button"
+                      disabled={generandoCodigosId === u.id}
+                      onClick={() => regenerarCodigos(u.id, u.nombre)}
+                      className="rounded-md border border-ink/15 px-3 py-1.5 text-xs font-medium text-ink/60 hover:border-safety hover:text-ink disabled:opacity-50"
+                    >
+                      {generandoCodigosId === u.id ? "Generando..." : "Generar códigos"}
                     </button>
                     <button
                       type="button"

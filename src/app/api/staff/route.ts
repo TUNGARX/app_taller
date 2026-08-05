@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import {
+  contarCodigosDisponibles,
   crearUsuario,
   eliminarUsuario,
+  generarCodigosRecuperacion,
   getUsuarioPublicoPorId,
   listarUsuarios,
   reiniciarPassword,
@@ -28,7 +30,11 @@ export async function GET() {
   const check = await requerirOwner();
   if (check.error) return check.error;
 
-  return NextResponse.json(listarUsuarios());
+  const usuarios = listarUsuarios().map((u) => ({
+    ...u,
+    codigosDisponibles: contarCodigosDisponibles(u.id),
+  }));
+  return NextResponse.json(usuarios);
 }
 
 export async function POST(request: Request) {
@@ -62,7 +68,11 @@ export async function POST(request: Request) {
       // their first login, same as the 90-day expiry flow.
       debeCambiarPassword: true,
     });
-    return NextResponse.json(usuario, { status: 201 });
+    // Every new account starts with its own recovery-code batch, handed to
+    // the Owner right away (this is the only time these codes are visible —
+    // only their hashes are kept from here on).
+    const codigosRecuperacion = generarCodigosRecuperacion(usuario.id);
+    return NextResponse.json({ ...usuario, codigosRecuperacion }, { status: 201 });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Error al crear el usuario.";
     return NextResponse.json({ error: message }, { status: 400 });

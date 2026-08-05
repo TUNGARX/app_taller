@@ -872,6 +872,42 @@ export function crearCotizacion(ordenId: string, items: CotizacionItem[], actor:
 }
 
 /**
+ * Replaces a Cotización's line items (add/remove/edit repuestos or mano de
+ * obra) and recomputes the total — allowed regardless of the order's Kanban
+ * stage, since more parts are routinely discovered mid-repair. **Locked once
+ * the document has become the final Factura** (estado "Aprobada" AND
+ * pagada), matching the same `esFactura` rule the UI already uses — a paid
+ * invoice should never silently change out from under the client.
+ */
+const actualizarItemsYActividad = db.transaction(
+  (cotizacionId: string, items: CotizacionItem[], total: number, ordenId: string, actor: Actor): void => {
+    db.prepare("DELETE FROM cotizacion_items WHERE cotizacionId = ?").run(cotizacionId);
+    const insertItem = db.prepare(
+      "INSERT INTO cotizacion_items (cotizacionId, descripcion, cantidad, precioUnitario, tipo) VALUES (?, ?, ?, ?, ?)"
+    );
+    for (const item of items) {
+      insertItem.run(cotizacionId, item.descripcion, item.cantidad, item.precioUnitario, item.tipo);
+    }
+    db.prepare("UPDATE cotizaciones SET total = ? WHERE id = ?").run(total, cotizacionId);
+    agregarActividad(ordenId, actor, "Actualizó los ítems de la cotización");
+  }
+);
+
+export function actualizarItemsCotizacion(cotizacionId: string, items: CotizacionItem[], actor: Actor): Cotizacion {
+  const row = db.prepare("SELECT * FROM cotizaciones WHERE id = ?").get(cotizacionId) as CotizacionRow | undefined;
+  if (!row) throw new Error("Cotización no encontrada.");
+  if (row.estado === "Aprobada" && row.pagada) {
+    throw new Error("No se puede modificar una factura ya pagada.");
+  }
+  if (items.length === 0) throw new Error("Agregue al menos una línea a la cotización.");
+
+  const { total } = calcularTotalesCotizacion(items);
+  actualizarItemsYActividad(cotizacionId, items, total, row.ordenId, actor);
+
+  return getCotizacionByOrdenId(row.ordenId)!;
+}
+
+/**
  * Records the client's decision on a Cotización. When rejecting, `seguimiento`
  * schedules a follow-up reminder 3 days out, per the shop's stated process.
  */

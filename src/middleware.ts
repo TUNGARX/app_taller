@@ -15,7 +15,9 @@ const { auth } = NextAuth(authConfig);
 const PUBLIC_PATHS = [
   /^\/$/, // landing page / sign-in
   /^\/buscar(\/.*)?$/, // public plate-lookup portal
+  /^\/recuperar$/, // forgot-password (recovery code) screen — no session yet
   /^\/api\/auth(\/.*)?$/, // Auth.js's own sign-in/session endpoints
+  /^\/api\/recuperar$/, // recovery-code password reset — no session yet
   /^\/api\/vehiculos$/, // plate lookup used by /buscar — exact path only,
   // NOT /api/vehiculos/[id]/historial, which is staff-only
 ];

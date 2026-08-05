@@ -1,5 +1,6 @@
 import Database from "better-sqlite3";
 import bcrypt from "bcryptjs";
+import crypto from "node:crypto";
 import path from "node:path";
 import fs from "node:fs";
 import type { Rol } from "@/lib/types";
@@ -45,6 +46,15 @@ function abrirDb(): Database.Database {
       passwordChangedAt TEXT NOT NULL,
       createdAt TEXT NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS recovery_codes (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      userId INTEGER NOT NULL,
+      codeHash TEXT NOT NULL,
+      usadoEn TEXT,
+      createdAt TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_recovery_codes_user ON recovery_codes(userId);
   `);
 
   globalThis.__tallerUsersDb = db;
@@ -180,4 +190,103 @@ export function reiniciarPassword(userId: number, passwordTemporal: string): voi
   db.prepare(
     "UPDATE users SET passwordHash = ?, passwordChangedAt = ?, debeCambiarPassword = 1 WHERE id = ?"
   ).run(passwordHash, new Date().toISOString(), userId);
+}
+
+// --- Self-service password recovery (no email/SMTP required) -----------------
+// A fixed batch of one-time codes per user, shown once at generation time and
+// stored only as bcrypt hashes (same treatment as the password itself) --
+// each code resets the password exactly once, then is permanently spent.
+
+// Excludes visually-ambiguous characters (0/O, 1/I/L) since these are meant
+// to be handwritten or read off a screen under workshop conditions.
+const ALFABETO_CODIGO = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+const CANTIDAD_CODIGOS = 8;
+
+function generarCodigoAleatorio(): string {
+  let codigo = "";
+  for (let i = 0; i < 8; i++) {
+    codigo += ALFABETO_CODIGO[crypto.randomInt(0, ALFABETO_CODIGO.length)];
+  }
+  return codigo;
+}
+
+function formatearCodigo(codigo: string): string {
+  return `${codigo.slice(0, 4)}-${codigo.slice(4)}`;
+}
+
+function normalizarCodigoIngresado(codigo: string): string {
+  return codigo.trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
+}
+
+/** Generates a fresh batch of recovery codes for a user, invalidating any
+ *  previous batch. Returns the plaintext codes (formatted "XXXX-XXXX") --
+ *  the only time they're ever visible, since only their bcrypt hashes are
+ *  kept afterward. Called both right after creating a new account and
+ *  on-demand from /staff to rotate an existing user's codes. */
+export function generarCodigosRecuperacion(userId: number): string[] {
+  const codigosPlanos = Array.from({ length: CANTIDAD_CODIGOS }, generarCodigoAleatorio);
+  const ahora = new Date().toISOString();
+
+  const regenerar = db.transaction(() => {
+    db.prepare("DELETE FROM recovery_codes WHERE userId = ?").run(userId);
+    const insertar = db.prepare(
+      "INSERT INTO recovery_codes (userId, codeHash, createdAt) VALUES (?, ?, ?)"
+    );
+    for (const codigo of codigosPlanos) {
+      insertar.run(userId, bcrypt.hashSync(codigo, 10), ahora);
+    }
+  });
+  regenerar();
+
+  return codigosPlanos.map(formatearCodigo);
+}
+
+/**
+ * Validates a one-time recovery code for the given username and, if it
+ * matches an unused one, sets the new password and marks that code spent --
+ * both in a single transaction, so a code can never reset a password twice.
+ * Returns false for any mismatch (unknown username, wrong/already-used
+ * code) -- deliberately the same generic outcome for both, so a failed
+ * attempt never reveals whether the username exists.
+ */
+export function restablecerPasswordConCodigo(
+  usuarioInput: string,
+  codigoInput: string,
+  nuevaPassword: string
+): boolean {
+  const user = getUsuarioPorNombreUsuario(usuarioInput);
+  if (!user) return false;
+
+  const codigoNormalizado = normalizarCodigoIngresado(codigoInput);
+  if (!codigoNormalizado) return false;
+
+  const candidatos = db
+    .prepare("SELECT id, codeHash FROM recovery_codes WHERE userId = ? AND usadoEn IS NULL")
+    .all(user.id) as { id: number; codeHash: string }[];
+
+  const coincidencia = candidatos.find((c) => bcrypt.compareSync(codigoNormalizado, c.codeHash));
+  if (!coincidencia) return false;
+
+  validarPassword(nuevaPassword);
+  const passwordHash = bcrypt.hashSync(nuevaPassword, 10);
+  const ahora = new Date().toISOString();
+
+  const restablecer = db.transaction(() => {
+    db.prepare(
+      "UPDATE users SET passwordHash = ?, passwordChangedAt = ?, debeCambiarPassword = 0 WHERE id = ?"
+    ).run(passwordHash, ahora, user.id);
+    db.prepare("UPDATE recovery_codes SET usadoEn = ? WHERE id = ?").run(ahora, coincidencia.id);
+  });
+  restablecer();
+
+  return true;
+}
+
+/** How many unused recovery codes a user still has left -- shown in /staff
+ *  so an Owner knows when a batch is running low and worth regenerating. */
+export function contarCodigosDisponibles(userId: number): number {
+  const row = db
+    .prepare("SELECT COUNT(*) AS n FROM recovery_codes WHERE userId = ? AND usadoEn IS NULL")
+    .get(userId) as { n: number };
+  return row.n;
 }
